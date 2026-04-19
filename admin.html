@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Karp 2025</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* ── Admin-specific ───────────────────────────────────── */
+    .transport-row {
+      display:     flex;
+      gap:         0.6rem;
+      flex-wrap:   wrap;
+      align-items: center;
+    }
+
+    .cb-row {
+      display:     flex;
+      align-items: center;
+      gap:         0.5rem;
+      margin-top:  0.55rem;
+    }
+    .cb-row input[type="checkbox"] {
+      accent-color: var(--accent);
+      cursor:       pointer;
+      width:        13px;
+      height:       13px;
+    }
+    .cb-row label {
+      font-size:   0.68rem;
+      color:       var(--muted);
+      cursor:      pointer;
+      user-select: none;
+    }
+
+    /* ── Vote summary ─────────────────────────────────────── */
+    #vote-panel { flex: 1; overflow-y: auto; }
+
+    .vote-header {
+      display:         flex;
+      justify-content: space-between;
+      align-items:     center;
+      margin-bottom:   0.6rem;
+    }
+
+    .vote-empty {
+      color:     var(--muted);
+      font-size: 0.75rem;
+      padding:   0.5rem 0;
+    }
+
+    .total-count {
+      font-size:  0.65rem;
+      color:      var(--muted);
+      margin-top: 0.6rem;
+    }
+    .total-count span { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────── -->
+<div class="page-header">
+  <span class="page-title">Karp 2025 — Admin</span>
+  <span class="status-line">
+    <span class="dot" id="conn-dot"></span>
+    <span id="conn-label">connecting…</span>
+  </span>
+</div>
+
+<!-- ── Body ────────────────────────────────────────────────── -->
+<div class="page-body">
+
+  <!-- ── Transport ───────────────────────────────────────── -->
+  <div class="panel">
+    <span class="panel-label">Transport</span>
+    <div class="transport-row">
+      <button class="btn-accent" id="start-btn">▶ Start (sync in 5 s)</button>
+      <button class="btn-warn"   id="stop-btn">■ Stop</button>
+      <button class="btn-danger" id="reset-btn">↺ Reset All</button>
+    </div>
+    <div class="status-line" style="margin-top: 0.65rem;">
+      <span class="dot" id="play-dot"></span>
+      <span id="play-label">idle</span>
+    </div>
+  </div>
+
+  <!-- ── Prompt ──────────────────────────────────────────── -->
+  <div class="panel">
+    <span class="panel-label">Prompt</span>
+    <div class="row">
+      <input type="text" class="grow" id="prompt-input"
+             placeholder="Enter prompt text…" autocomplete="off">
+      <button class="btn-accent" id="send-prompt-btn">Send Prompt</button>
+    </div>
+  </div>
+
+  <!-- ── Live vote summary ────────────────────────────────── -->
+  <div class="panel" id="vote-panel">
+    <div class="vote-header">
+      <span class="panel-label" style="margin:0;">Live Votes</span>
+      <button id="clear-votes-btn">Clear Votes</button>
+    </div>
+    <div id="vote-list">
+      <div class="vote-empty">No votes yet.</div>
+    </div>
+    <div class="total-count" id="total-count" style="display:none;">
+      Total responses: <span id="total-num">0</span>
+      &nbsp;|&nbsp;
+      Unique words: <span id="unique-num">0</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Script ──────────────────────────────────────────────── -->
+<script>
+'use strict';
+
+// ── Config ────────────────────────────────────────────────────
+const SERVER    = 'https://relay.brianellissound.com';
+const NS        = 'karp2025';
+const STATE_KEY = `${NS}-state`;
+const VOTES_KEY = `${NS}-votes`;
+const POLL_MS   = 1000;
+
+// ── DOM refs ─────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const promptInput     = $('prompt-input');
+const sendPromptBtn   = $('send-prompt-btn');
+const startBtn        = $('start-btn');
+const stopBtn         = $('stop-btn');
+const resetBtn        = $('reset-btn');
+const clearVotesBtn   = $('clear-votes-btn');
+const voteList        = $('vote-list');
+const totalCount      = $('total-count');
+const totalNum        = $('total-num');
+const uniqueNum       = $('unique-num');
+const connDot         = $('conn-dot');
+const connLabel       = $('conn-label');
+const playDot         = $('play-dot');
+const playLabel       = $('play-label');
+
+// ── Helpers ───────────────────────────────────────────────────
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+async function postState(state) {
+  return fetch(`${SERVER}/post_message/${STATE_KEY}`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ ...state, sentAt: Date.now() })
+  });
+}
+
+async function doClearVotes() {
+  return fetch(`${SERVER}/clear_message/${VOTES_KEY}`, { method: 'POST' });
+}
+
+// ── Transport ─────────────────────────────────────────────────
+startBtn.addEventListener('click', async () => {
+  const startAt = Date.now() + 5000;
+  const prompt  = promptInput.value.trim();
+  await postState({ action: 'start', startAt, prompt: prompt || undefined });
+  playDot.classList.add('active');
+  playLabel.textContent = 'syncing — all clients start in 5 s';
+  startBtn.disabled = true;
+  startBtn.textContent = '▶ Started';
+});
+
+stopBtn.addEventListener('click', async () => {
+  await postState({ action: 'stop' });
+  playDot.classList.remove('active');
+  playLabel.textContent = 'stopped';
+  startBtn.disabled = false;
+  startBtn.textContent = '▶ Start (sync in 5 s)';
+});
+
+resetBtn.addEventListener('click', async () => {
+  if (!confirm('Reset all players, clear votes, and clear prompt?')) return;
+  await doClearVotes();
+  await fetch(`${SERVER}/clear_message/${STATE_KEY}`, { method: 'POST' });
+  await postState({ action: 'reset', prompt: '' });
+  playDot.classList.remove('active');
+  playLabel.textContent = 'idle';
+  startBtn.disabled = false;
+  startBtn.textContent = '▶ Start (sync in 5 s)';
+  promptInput.value = '';
+  renderVotes({});
+});
+
+sendPromptBtn.addEventListener('click', async () => {
+  const prompt = promptInput.value.trim();
+  if (!prompt) { promptInput.focus(); return; }
+  await doClearVotes();
+  await postState({ action: 'prompt', prompt });
+  sendPromptBtn.textContent = 'Sent ✓';
+  setTimeout(() => { sendPromptBtn.textContent = 'Send Prompt'; }, 1800);
+});
+promptInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendPromptBtn.click();
+});
+
+clearVotesBtn.addEventListener('click', async () => {
+  if (!confirm('Clear all votes?')) return;
+  await doClearVotes();
+  renderVotes({});
+});
+
+// ── Vote rendering ────────────────────────────────────────────
+function renderVotes(data) {
+  const counts = {};
+  let total = 0;
+  for (const pid in data) {
+    const w = (data[pid].word || '').trim();
+    if (w) { counts[w] = (counts[w] || 0) + 1; total++; }
+  }
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+
+  if (!sorted.length) {
+    voteList.innerHTML = '<div class="vote-empty">No votes yet.</div>';
+    totalCount.style.display = 'none';
+    return;
+  }
+
+  const maxC = sorted[0][1];
+  voteList.innerHTML = sorted.map(([word, count]) => `
+    <div class="vote-row">
+      <span class="vote-word">${esc(word)}</span>
+      <div class="vote-bar-wrap">
+        <div class="vote-bar" style="width:${(count / maxC * 100).toFixed(1)}%"></div>
+      </div>
+      <span class="vote-count">${count}</span>
+    </div>
+  `).join('');
+
+  totalNum.textContent  = total;
+  uniqueNum.textContent = sorted.length;
+  totalCount.style.display = 'block';
+}
+
+// ── Polling ───────────────────────────────────────────────────
+async function pollVotes() {
+  try {
+    const res  = await fetch(`${SERVER}/get_message/${VOTES_KEY}`);
+    const data = await res.json();
+    renderVotes(data);
+    connDot.classList.add('active');
+    connLabel.textContent = 'connected';
+  } catch (e) {
+    connDot.classList.remove('active');
+    connLabel.textContent = 'error — retrying';
+  }
+}
+
+setInterval(pollVotes, POLL_MS);
+pollVotes();
+</script>
+</body>
+</html>

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projector — Karp 2025</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* ── Projector layout ─────────────────────────────────── */
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      display:        flex;
+      flex-direction: column;
+      height:         100vh;
+    }
+
+    /* ── Prompt area ──────────────────────────────────────── */
+    #proj-prompt-area {
+      padding:       1.2rem 1.8rem 0.8rem;
+      border-bottom: 3px dashed #ffaadd;
+      flex-shrink:   0;
+      background:    linear-gradient(to bottom, rgba(255,240,250,0.85), rgba(255,220,245,0.5));
+    }
+
+    #proj-eyebrow {
+      font-family:    var(--font-big);
+      font-size:      0.72rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color:          var(--muted);
+      margin-bottom:  0.4rem;
+    }
+
+    #proj-prompt {
+      font-family: var(--font-big);
+      font-size:   clamp(1.8rem, 5.5vw, 3.5rem);
+      color:       var(--pink);
+      line-height: 1.15;
+      min-height:  1.2em;
+      word-break:  break-word;
+      transition:  opacity 0.4s;
+      text-shadow:
+        3px 3px 0 var(--purple),
+        0 0 20px rgba(224,8,154,0.3);
+    }
+
+    /* ── Votes area ───────────────────────────────────────── */
+    #proj-votes-area {
+      flex:       1;
+      overflow-y: auto;
+      padding:    1rem 1.8rem 1.5rem;
+    }
+
+    .pv-row {
+      display:       flex;
+      align-items:   center;
+      gap:           1rem;
+      padding:       0.55rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .pv-row:last-child { border-bottom: none; }
+
+    .pv-word {
+      flex:          2;          /* 2/3 of available space */
+      font-size:     clamp(1.1rem, 3vw, 2rem);
+      font-weight:   bold;
+      color:         var(--accent);
+      overflow:      hidden;
+      text-overflow: ellipsis;
+      white-space:   nowrap;
+      text-shadow:   0 1px 0 rgba(255,255,255,0.7);
+    }
+
+    .pv-bar-wrap {
+      flex:          1;          /* 1/3 of available space */
+      background:    linear-gradient(to bottom, #ffddee, #ffccdd);
+      height:        14px;
+      border-radius: 7px;
+      overflow:      hidden;
+      border:        1.5px solid #dd88bb;
+      box-shadow:    inset 0 2px 4px rgba(200,0,120,0.15);
+    }
+    .pv-bar {
+      height:        100%;
+      background:    linear-gradient(to right, #ff44cc, #aa00ff, #0066ff);
+      border-radius: 7px;
+      transition:    width 0.55s ease;
+      box-shadow:    inset 0 1px 0 rgba(255,255,255,0.4);
+    }
+
+    .pv-count {
+      flex:        0 0 2.5ch;
+      text-align:  right;
+      font-size:   clamp(0.9rem, 2.5vw, 1.4rem);
+      font-weight: bold;
+      color:       var(--purple);
+    }
+
+    .pv-empty {
+      color:     var(--muted);
+      font-size: 1rem;
+      padding:   1.5rem 0;
+    }
+
+    /* ── Floating controls ────────────────────────────────── */
+    #toolbar {
+      position:   fixed;
+      bottom:     1rem;
+      right:      1rem;
+      display:    flex;
+      gap:        0.4rem;
+      opacity:    0.2;
+      transition: opacity 0.2s;
+      z-index:    50;
+    }
+    #toolbar:hover { opacity: 1; }
+
+    /* ── "New prompt" flash overlay ───────────────────────── */
+    #prompt-flash {
+      display:         none;
+      position:        fixed;
+      inset:           0;
+      background:      linear-gradient(135deg,
+                         rgba(255,180,230,0.96) 0%,
+                         rgba(220,160,255,0.96) 50%,
+                         rgba(170,200,255,0.96) 100%);
+      backdrop-filter: blur(8px);
+      z-index:         100;
+      align-items:     center;
+      justify-content: center;
+      flex-direction:  column;
+      text-align:      center;
+      animation:       fadeOut 0.5s ease 1.8s forwards;
+      pointer-events:  none;
+    }
+    #prompt-flash.show { display: flex; }
+    @keyframes fadeOut {
+      to { opacity: 0; display: none; }
+    }
+    .pf-eyebrow {
+      font-family:    var(--font-big);
+      font-size:      0.9rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color:          var(--purple);
+      margin-bottom:  1rem;
+      text-shadow:    2px 2px 0 rgba(119,0,204,0.2);
+    }
+    .pf-word {
+      font-family: var(--font-big);
+      font-size:   clamp(3rem, 12vw, 7rem);
+      color:       var(--pink);
+      text-shadow:
+        4px 4px 0 var(--purple),
+        0 0 40px rgba(224,8,154,0.5);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────── -->
+<div class="page-header">
+  <span class="page-title">Karp 2025 — Projector</span>
+  <span class="status-line">
+    <span class="dot" id="conn-dot"></span>
+    <span id="conn-label" style="font-size:0.65rem;">connecting…</span>
+  </span>
+</div>
+
+<!-- ── Prompt ──────────────────────────────────────────────── -->
+<div id="proj-prompt-area">
+  <div id="proj-eyebrow">Prompt</div>
+  <div id="proj-prompt">—</div>
+</div>
+
+<!-- ── Votes ───────────────────────────────────────────────── -->
+<div id="proj-votes-area">
+  <div class="pv-empty" id="pv-empty">Waiting for responses…</div>
+</div>
+
+<!-- ── Floating toolbar (fades unless hovered) ─────────────── -->
+<div id="toolbar">
+  <button onclick="toggleFullscreen()">⛶ fullscreen</button>
+</div>
+
+<!-- ── New-prompt flash (shown briefly when prompt changes) ─── -->
+<div id="prompt-flash">
+  <div class="pf-eyebrow">New Prompt</div>
+  <div class="pf-word" id="pf-word"></div>
+</div>
+
+<!-- ── Script ──────────────────────────────────────────────── -->
+<script>
+'use strict';
+
+// ── Config ────────────────────────────────────────────────────
+const SERVER    = 'https://relay.brianellissound.com';
+const NS        = 'karp2025';
+const STATE_KEY = `${NS}-state`;
+const VOTES_KEY = `${NS}-votes`;
+const POLL_MS   = 800;
+const STALE_MS  = 7_200_000;
+
+// ── DOM refs ─────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const projPrompt   = $('proj-prompt');
+const votesArea    = $('proj-votes-area');
+const pvEmpty      = $('pv-empty');
+const connDot      = $('conn-dot');
+const connLabel    = $('conn-label');
+const promptFlash  = $('prompt-flash');
+const pfWord       = $('pf-word');
+
+let lastPrompt  = '';
+let lastSentAt  = 0;
+
+// ── Utility ───────────────────────────────────────────────────
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// ── Prompt flash ──────────────────────────────────────────────
+function flashPrompt(prompt) {
+  pfWord.textContent = prompt;
+  promptFlash.classList.remove('show');
+  void promptFlash.offsetWidth; // restart animation
+  promptFlash.classList.add('show');
+  setTimeout(() => promptFlash.classList.remove('show'), 2400);
+}
+
+// ── Vote rendering ────────────────────────────────────────────
+function renderVotes(data) {
+  const counts = {};
+  for (const pid in data) {
+    const w = (data[pid].word || '').trim();
+    if (w) counts[w] = (counts[w] || 0) + 1;
+  }
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+
+  if (!sorted.length) {
+    // Keep pv-empty visible; remove any previously rendered rows
+    const rows = votesArea.querySelectorAll('.pv-row');
+    rows.forEach(r => r.remove());
+    pvEmpty.style.display = 'block';
+    return;
+  }
+
+  pvEmpty.style.display = 'none';
+  const maxC = sorted[0][1];
+
+  // Build a map of existing rows so we can update in-place (smooth bar transition)
+  const existing = {};
+  votesArea.querySelectorAll('.pv-row').forEach(row => {
+    existing[row.dataset.word] = row;
+  });
+
+  // Reorder / create rows
+  sorted.forEach(([word, count]) => {
+    let row = existing[word];
+    if (!row) {
+      row = document.createElement('div');
+      row.className = 'pv-row';
+      row.dataset.word = word;
+      row.innerHTML = `
+        <div class="pv-word">${esc(word)}</div>
+        <div class="pv-bar-wrap"><div class="pv-bar"></div></div>
+        <div class="pv-count"></div>
+      `;
+    }
+    row.querySelector('.pv-bar').style.width   = (count / maxC * 100).toFixed(1) + '%';
+    row.querySelector('.pv-count').textContent = count;
+    votesArea.appendChild(row); // re-appending keeps sort order
+    delete existing[word];
+  });
+
+  // Remove words that no longer exist
+  for (const oldWord in existing) existing[oldWord].remove();
+}
+
+// ── Main poll ─────────────────────────────────────────────────
+async function poll() {
+  try {
+    const [stRes, vtRes] = await Promise.all([
+      fetch(`${SERVER}/get_message/${STATE_KEY}`),
+      fetch(`${SERVER}/get_message/${VOTES_KEY}`)
+    ]);
+    const state = await stRes.json();
+    const votes = await vtRes.json();
+
+    connDot.classList.add('active');
+    connLabel.textContent = 'live';
+
+    // Handle state changes (only if recent and not already processed)
+    if (state && state.sentAt && state.sentAt >= Date.now() - STALE_MS) {
+      if (state.sentAt > lastSentAt) {
+        lastSentAt = state.sentAt;
+
+        if (state.action === 'reset') {
+          // Wipe everything back to waiting state
+          lastPrompt             = '';
+          projPrompt.textContent = '—';
+          pvEmpty.textContent    = 'Waiting for responses…';
+          pvEmpty.style.display  = 'block';
+          votesArea.querySelectorAll('.pv-row').forEach(r => r.remove());
+        }
+      }
+
+      if (state.prompt && state.prompt !== lastPrompt) {
+        lastPrompt             = state.prompt;
+        projPrompt.textContent = state.prompt;
+        flashPrompt(state.prompt);
+      }
+    }
+
+    renderVotes(votes || {});
+  } catch (e) {
+    connDot.classList.remove('active');
+    connLabel.textContent = 'error';
+  }
+}
+
+setInterval(poll, POLL_MS);
+poll();
+
+// ── Fullscreen ────────────────────────────────────────────────
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen().catch(() => {});
+  }
+}
+</script>
+</body>
+</html>

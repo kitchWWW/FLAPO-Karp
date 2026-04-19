@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Player — Karp 2025</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* ── Welcome overlay ──────────────────────────────────── */
+    #welcome-overlay {
+      position:        fixed;
+      inset:           0;
+      z-index:         999;
+      display:         flex;
+      flex-direction:  column;
+      align-items:     center;
+      justify-content: center;
+      text-align:      center;
+      cursor:          pointer;
+      background:      linear-gradient(135deg,
+                         #ff99dd 0%, #cc66ff 40%, #6699ff 100%);
+      padding:         2rem;
+    }
+
+    .wc-title {
+      font-family:    var(--font-big);
+      font-size:      clamp(3rem, 12vw, 6rem);
+      color:          white;
+      text-shadow:    4px 4px 0 rgba(80,0,120,0.4),
+                      0 0 40px rgba(255,255,255,0.4);
+      line-height:    1;
+      margin-bottom:  0.4em;
+    }
+
+    .wc-sub {
+      font-family:    var(--font-big);
+      font-size:      clamp(0.9rem, 3vw, 1.4rem);
+      color:          rgba(255,255,255,0.85);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom:  3rem;
+      text-shadow:    1px 1px 0 rgba(80,0,120,0.3);
+    }
+
+    .wc-tap {
+      font-family:    var(--font);
+      font-size:      clamp(1rem, 3vw, 1.3rem);
+      font-weight:    bold;
+      color:          white;
+      background:     rgba(255,255,255,0.2);
+      border:         3px solid rgba(255,255,255,0.7);
+      border-radius:  50px;
+      padding:        0.75em 2.5em;
+      letter-spacing: 0.08em;
+      box-shadow:     0 4px 20px rgba(0,0,0,0.2),
+                      inset 0 1px 0 rgba(255,255,255,0.4);
+      animation:      wc-pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes wc-pulse {
+      0%, 100% { transform: scale(1);    box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+      50%       { transform: scale(1.05); box-shadow: 0 6px 30px rgba(0,0,0,0.3); }
+    }
+
+    /* ── Player-specific ──────────────────────────────────── */
+    #vote-input {
+      font-size: 2rem;
+      padding:   0.65rem 0.85rem;
+    }
+
+    /* ── Sonification word display ────────────────────────── */
+    #word-display-panel {
+      display: none; /* shown once a word exists */
+    }
+
+    .queued-label {
+      font-size:   0.78rem;
+      font-weight: bold;
+      color:       var(--muted);
+      margin-top:  0.6rem;
+    }
+    .queued-label .hl { color: var(--purple); }
+
+    #word-display {
+      display:         flex;
+      flex-wrap:       wrap;
+      gap:             0.3rem;
+      padding:         0.5rem 0 0.25rem;
+      align-items:     flex-end;
+      justify-content: flex-start;
+      min-height:      5rem;
+    }
+
+    .no-word {
+      font-size: 2rem;
+      color:     var(--muted);
+    }
+
+    /* Each character cell */
+    .wchar {
+      display:        inline-flex;
+      flex-direction: column;
+      align-items:    center;
+      gap:            0.25rem;
+      padding:        0.2rem 0.15rem 0.3rem;
+      border-radius:  5px;
+      transition:     transform 0.05s, background 0.05s, box-shadow 0.05s;
+    }
+
+    .wchar-letter {
+      font-family: var(--font-big);
+      font-size:   2rem;
+      line-height: 1;
+      transition:  color 0.05s, text-shadow 0.05s;
+    }
+
+    .wchar-dot {
+      width:         7px;
+      height:        7px;
+      border-radius: 50%;
+      transition:    background 0.05s, box-shadow 0.05s;
+    }
+
+    /* ON character (plays a note) */
+    .wchar.is-on .wchar-letter { color: #cc0088; opacity: 0.55; }
+    .wchar.is-on .wchar-dot    { background: #cc0088; opacity: 0.4; }
+
+    /* OFF character (silence) */
+    .wchar.is-off .wchar-letter { color: #cc99bb; opacity: 0.35; }
+    .wchar.is-off .wchar-dot    { background: #ddbbcc; opacity: 0.35; }
+
+    /* Space character */
+    .wchar.is-space .wchar-letter { color: transparent; min-width: 0.6em; }
+    .wchar.is-space .wchar-dot    { background: #eeddee; opacity: 0.3; }
+
+    /* Active / currently playing */
+    .wchar.active {
+      transform: scale(1.18) translateY(-3px);
+    }
+    .wchar.active.is-on {
+      background: rgba(224, 8, 154, 0.12);
+      box-shadow: 0 0 14px rgba(224,8,154,0.3);
+    }
+    .wchar.active.is-on .wchar-letter {
+      color:       var(--pink);
+      opacity:     1;
+      text-shadow: 0 0 12px rgba(224,8,154,0.55), 2px 2px 0 var(--purple);
+    }
+    .wchar.active.is-on .wchar-dot {
+      background:  var(--pink);
+      opacity:     1;
+      box-shadow:  0 0 7px rgba(224,8,154,0.7);
+    }
+    .wchar.active.is-off {
+      background: rgba(119, 0, 204, 0.07);
+    }
+    .wchar.active.is-off .wchar-letter {
+      color:   var(--purple);
+      opacity: 0.7;
+    }
+    .wchar.active.is-off .wchar-dot {
+      background: var(--purple);
+      opacity:    0.5;
+    }
+    .wchar.active.is-space {
+      background: rgba(119, 0, 204, 0.05);
+    }
+
+    /* ── Full-screen prompt overlay ───────────────────────── */
+    #prompt-overlay {
+      display:         none;
+      position:        fixed;
+      inset:           0;
+      background:      linear-gradient(135deg,
+                         rgba(255,180,230,0.97) 0%,
+                         rgba(220,160,255,0.97) 50%,
+                         rgba(170,200,255,0.97) 100%);
+      backdrop-filter: blur(6px);
+      z-index:         300;
+      flex-direction:  column;
+      align-items:     center;
+      justify-content: center;
+      text-align:      center;
+      cursor:          pointer;
+    }
+    #prompt-overlay.show { display: flex; }
+
+    .ol-eyebrow {
+      font-family:    var(--font-big);
+      font-size:      0.85rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color:          var(--purple);
+      margin-bottom:  1.2rem;
+      text-shadow:    2px 2px 0 rgba(119,0,204,0.2);
+    }
+    .ol-word {
+      font-family:    var(--font-big);
+      font-size:      clamp(2.5rem, 11vw, 6rem);
+      color:          var(--pink);
+      letter-spacing: 0.04em;
+      word-break:     break-word;
+      padding:        0 1rem;
+      text-shadow:
+        3px 3px 0 var(--purple),
+        0 0 30px rgba(224,8,154,0.4);
+    }
+    .ol-hint {
+      margin-top:     2rem;
+      font-size:      0.68rem;
+      font-weight:    bold;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color:          var(--muted);
+    }
+
+    /* ── Note flash ring ──────────────────────────────────── */
+    @keyframes ring-flash {
+      0%   { transform: scale(1);   opacity: 1;   }
+      100% { transform: scale(2.8); opacity: 0;   }
+    }
+    .note-ring {
+      position:      relative;
+      width:         10px;
+      height:        10px;
+      flex-shrink:   0;
+    }
+    .note-ring .dot  {
+      position:      absolute;
+      inset:         0;
+      border-radius: 50%;
+      background:    var(--muted);
+      transition:    background 0.05s;
+    }
+    .note-ring .ring {
+      position:      absolute;
+      inset:         0;
+      border-radius: 50%;
+      background:    var(--accent);
+      opacity:       0;
+    }
+    .note-ring.flash .dot  { background: var(--accent); }
+    .note-ring.flash .ring { animation: ring-flash 0.35s ease-out forwards; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────── -->
+<div class="page-header">
+  <span class="page-title">Karp 2025 — Player</span>
+  <span class="status-line">
+    <span class="dot" id="sync-dot"></span>
+    <span id="sync-label">waiting for start</span>
+  </span>
+</div>
+
+<!-- ── Body ────────────────────────────────────────────────── -->
+<div class="page-body">
+
+  <!-- Audio settings -->
+  <div class="panel">
+    <span class="panel-label">Audio Settings</span>
+    <div class="grid-3">
+
+      <div class="slider-group">
+        <label>Pitch <span class="val" id="pitch-val">—</span></label>
+        <input type="range" id="pitch-slider" min="0" max="1" step="0.001" value="0.5">
+      </div>
+
+      <div class="slider-group">
+        <label>Decay <span class="val" id="decay-val">—</span></label>
+        <input type="range" id="decay-slider" min="0" max="1" step="0.001" value="0.637">
+      </div>
+
+      <div>
+        <div class="slider-group">
+          <label>Renderer <span class="val"></span></label>
+        </div>
+        <select id="renderer-select" style="margin-top:0.3rem;">
+          <option value="tone">Tone (sine)</option>
+          <option value="noise">White Noise</option>
+          <option value="files">Audio Files</option>
+        </select>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Prompt bar (populated by admin) -->
+  <div class="panel" id="prompt-panel" style="display:none;">
+    <span class="panel-label">Current Prompt</span>
+    <div id="prompt-text" style="font-size:1.4rem; font-weight:bold; color:var(--pink);"></div>
+  </div>
+
+  <!-- Vote entry -->
+  <div class="panel">
+    <span class="panel-label">Your Response — press Enter to send</span>
+    <div class="row">
+      <input type="text" class="grow" id="vote-input"
+             placeholder="type here…" autocomplete="off" spellcheck="false">
+      <button class="btn-accent" id="submit-btn">Send →</button>
+    </div>
+  </div>
+
+  <!-- Now Playing / sonification display -->
+  <div class="panel" id="word-display-panel" style="flex:1;">
+    <span class="panel-label">Now Playing</span>
+    <div id="word-display"><span class="no-word">—</span></div>
+    <div class="queued-label" id="queued-label"></div>
+  </div>
+
+  <!-- Playback status -->
+  <div class="status-line" style="padding: 0.1rem 0;">
+    <span class="note-ring" id="note-ring">
+      <span class="dot"></span>
+      <span class="ring"></span>
+    </span>
+    <span id="play-label">audio idle</span>
+  </div>
+
+</div>
+
+<!-- Welcome / audio-unlock overlay (shown on first load) -->
+<div id="welcome-overlay">
+  <div class="wc-title">KARP 2025</div>
+  <div class="wc-sub">Interactive Score System</div>
+  <div class="wc-tap">Tap to Join</div>
+</div>
+
+<!-- Prompt overlay -->
+<div id="prompt-overlay">
+  <div class="ol-eyebrow">New Prompt</div>
+  <div class="ol-word" id="ol-word"></div>
+</div>
+
+<!-- ── Scripts ─────────────────────────────────────────────── -->
+<script src="audio-renderers.js"></script>
+<script>
+'use strict';
+
+// ── Config ────────────────────────────────────────────────────
+const SERVER    = 'https://relay.brianellissound.com';
+const NS        = 'karp2025';
+const STATE_KEY = `${NS}-state`;
+const VOTES_KEY = `${NS}-votes`;
+const POLL_MS   = 800;    // server poll interval
+const NOTE_DUR  = 0.400;  // seconds per note slot
+const LOOKAHEAD = 0.250;  // seconds to schedule ahead
+const TICK_MS   = 50;     // scheduler heartbeat
+
+// ── Player identity ───────────────────────────────────────────
+// sessionStorage is per-tab, so each open window gets its own ID.
+// Refreshing the same tab preserves the ID (vote stays associated).
+let playerId = sessionStorage.getItem(`${NS}-pid`);
+if (!playerId) {
+  playerId = 'p-' + Math.random().toString(36).slice(2, 10);
+  sessionStorage.setItem(`${NS}-pid`, playerId);
+}
+
+// ── Log-scale helper ──────────────────────────────────────────
+const logScale = (v, lo, hi) => lo * Math.pow(hi / lo, v);
+
+// ── Audio state ───────────────────────────────────────────────
+let audioCtx       = null;
+let renderer       = null;
+let isPlaying      = false;
+let audioStartTime = null;   // AudioContext time that maps to piece t=0
+let scheduledUpTo  = 0;      // AudioContext time we've scheduled notes to
+let tickTimer      = null;
+let currentWord    = '';     // word currently looping
+let pendingWord    = null;   // word queued for next note boundary
+let wordStartNote  = 0;      // global note index when currentWord began
+
+// ── Poll state ────────────────────────────────────────────────
+let lastSentAt  = 0;
+let lastPrompt  = '';
+let currentPitch = 440;
+let currentDecay = 0.2;
+
+// ── DOM refs ─────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const pitchSlider      = $('pitch-slider');
+const pitchVal         = $('pitch-val');
+const decaySlider      = $('decay-slider');
+const decayVal         = $('decay-val');
+const rendererSel      = $('renderer-select');
+const voteInput        = $('vote-input');
+const submitBtn        = $('submit-btn');
+const playLabel        = $('play-label');
+const noteRing         = $('note-ring');
+const syncDot          = $('sync-dot');
+const syncLabel        = $('sync-label');
+const promptPanel      = $('prompt-panel');
+const promptText       = $('prompt-text');
+const promptOverlay    = $('prompt-overlay');
+const olWord           = $('ol-word');
+const wordDisplayPanel = $('word-display-panel');
+const wordDisplayEl    = $('word-display');
+const queuedLabel      = $('queued-label');
+
+// ── Slider wiring ─────────────────────────────────────────────
+pitchSlider.addEventListener('input', () => {
+  currentPitch = logScale(+pitchSlider.value, 100, 2000);
+  pitchVal.textContent = Math.round(currentPitch) + ' Hz';
+});
+decaySlider.addEventListener('input', () => {
+  currentDecay = logScale(+decaySlider.value, 0.040, 0.500);
+  decayVal.textContent = Math.round(currentDecay * 1000) + ' ms';
+});
+rendererSel.addEventListener('change', () => {
+  if (audioCtx) renderer = createRenderer(rendererSel.value, audioCtx);
+});
+
+// Randomise pitch on every page load so players start distinct
+pitchSlider.value = Math.random().toFixed(3);
+// Decay stays at midpoint default
+decaySlider.value = '0.637';
+
+// Initialise display values
+pitchSlider.dispatchEvent(new Event('input'));
+decaySlider.dispatchEvent(new Event('input'));
+
+// ── Welcome overlay / audio unlock ───────────────────────────
+const welcomeOverlay = $('welcome-overlay');
+welcomeOverlay.addEventListener('click', () => {
+  ensureAudio();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  welcomeOverlay.style.transition = 'opacity 0.4s';
+  welcomeOverlay.style.opacity    = '0';
+  setTimeout(() => {
+    welcomeOverlay.style.display = 'none';
+    voteInput.focus();
+  }, 400);
+});
+
+// ── Audio context init ────────────────────────────────────────
+function ensureAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  renderer = createRenderer(rendererSel.value, audioCtx);
+}
+
+// ── Scheduler ─────────────────────────────────────────────────
+function startScheduler(startAtUTC) {
+  ensureAudio();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
+  // Map the UTC piece-start time into AudioContext time
+  const nowUTC   = Date.now();
+  audioStartTime = audioCtx.currentTime + (startAtUTC - nowUTC) / 1000;
+
+  // Begin scheduling from now (or wait if start is in the future)
+  scheduledUpTo = Math.max(audioCtx.currentTime, audioStartTime);
+  isPlaying     = true;
+
+  syncDot.classList.add('active');
+  const secsTill = (startAtUTC - nowUTC) / 1000;
+  syncLabel.textContent = secsTill > 0.5
+    ? `starts in ${secsTill.toFixed(1)} s`
+    : 'playing';
+
+  clearTimeout(tickTimer);
+  tick();
+}
+
+function tick() {
+  if (!isPlaying) return;
+
+  const now     = audioCtx.currentTime;
+  const horizon = now + LOOKAHEAD;
+
+  while (scheduledUpTo < horizon) {
+    if (scheduledUpTo >= audioStartTime) {
+
+      // Global note index since piece start
+      const gIdx = Math.round((scheduledUpTo - audioStartTime) / NOTE_DUR);
+
+      // Swap in pending word at the next note boundary
+      if (pendingWord !== null) {
+        currentWord  = pendingWord.toUpperCase();
+        pendingWord  = null;
+        wordStartNote = gIdx;
+        updateWordStatus();
+      }
+
+      if (currentWord.length > 0) {
+        const charIdx = (gIdx - wordStartNote) % currentWord.length;
+        const ch      = currentWord[charIdx];
+        const isOn    = CHAR_MAP[ch] ?? false;
+
+        renderer.playNote(isOn, scheduledUpTo, NOTE_DUR, currentPitch, currentDecay, ch);
+
+        // Schedule the note-flash indicator to fire at the right moment
+        if (isOn) {
+          const delay = Math.max(0, (scheduledUpTo - now) * 1000);
+          setTimeout(flashNote, delay);
+        }
+      }
+    }
+
+    scheduledUpTo += NOTE_DUR;
+  }
+
+  // Live countdown / playing label
+  if (audioStartTime !== null && audioCtx.currentTime < audioStartTime) {
+    const rem = audioStartTime - audioCtx.currentTime;
+    syncLabel.textContent = `starts in ${rem.toFixed(1)} s`;
+    playLabel.textContent = `starting in ${rem.toFixed(1)} s…`;
+  } else if (isPlaying) {
+    syncLabel.textContent = 'playing';
+    playLabel.textContent = currentWord ? `playing: ${currentWord}` : 'playing — no word yet';
+  }
+
+  // Update character highlight based on current playback position
+  updateHighlight();
+
+  tickTimer = setTimeout(tick, TICK_MS);
+}
+
+function flashNote() {
+  noteRing.classList.remove('flash');
+  // Force reflow so the animation re-triggers
+  void noteRing.offsetWidth;
+  noteRing.classList.add('flash');
+  setTimeout(() => noteRing.classList.remove('flash'), 400);
+}
+
+function stopScheduler() {
+  isPlaying = false;
+  clearTimeout(tickTimer);
+  syncDot.classList.remove('active');
+  syncLabel.textContent = 'stopped';
+  playLabel.textContent = 'stopped';
+}
+
+function resetScheduler() {
+  stopScheduler();
+  currentWord    = '';
+  pendingWord    = null;
+  audioStartTime = null;
+  scheduledUpTo  = 0;
+  wordStartNote  = 0;
+  // Clear prompt state
+  lastPrompt             = '';
+  lastSentAt             = 0;
+  promptPanel.style.display = 'none';
+  promptText.textContent = '';
+  voteInput.value        = '';
+  promptOverlay.classList.remove('show');
+  clearTimeout(_overlayTimer);
+  // Reset status labels
+  syncDot.classList.remove('active');
+  syncLabel.textContent = 'waiting for admin';
+  playLabel.textContent = 'audio idle';
+  queuedLabel.innerHTML = '';
+  updateWordStatus(); // clears word display back to —
+}
+
+// ── Word display rendering ────────────────────────────────────
+function renderWordDisplay(word) {
+  if (!word) {
+    wordDisplayEl.innerHTML = '<span class="no-word">—</span>';
+    wordDisplayPanel.style.display = 'none';
+    return;
+  }
+  wordDisplayPanel.style.display = 'block';
+  wordDisplayEl.innerHTML = word.split('').map((ch, i) => {
+    const key = ch.toUpperCase();
+    let cls;
+    if (ch === ' ') {
+      cls = 'is-space';
+    } else if (CHAR_MAP[key] === true) {
+      cls = 'is-on';
+    } else {
+      cls = 'is-off';
+    }
+    const display = ch === ' ' ? '&ensp;' : esc(ch.toUpperCase());
+    return `<span class="wchar ${cls}" data-idx="${i}">` +
+             `<span class="wchar-letter">${display}</span>` +
+             `<span class="wchar-dot"></span>` +
+           `</span>`;
+  }).join('');
+}
+
+function updateHighlight() {
+  if (!isPlaying || audioStartTime === null || !currentWord) return;
+  const now = audioCtx.currentTime;
+  if (now < audioStartTime) return;
+  const gIdx    = Math.floor((now - audioStartTime) / NOTE_DUR);
+  const charIdx = (gIdx - wordStartNote) % currentWord.length;
+  const chars   = wordDisplayEl.querySelectorAll('.wchar');
+  chars.forEach((el, i) => el.classList.toggle('active', i === charIdx));
+}
+
+function updateWordStatus() {
+  renderWordDisplay(currentWord);
+  if (pendingWord) {
+    queuedLabel.innerHTML = `Up next: <span class="hl">${esc(pendingWord.toUpperCase())}</span>`;
+  } else {
+    queuedLabel.innerHTML = '';
+  }
+}
+
+// ── Vote submission ───────────────────────────────────────────
+async function submitVote(raw) {
+  const word = raw.trim();
+  if (!word) return;
+
+  // Queue locally — scheduler picks it up at the next note boundary
+  pendingWord = word;
+  updateWordStatus();
+
+  // Post to server (player's slot is overwritten each time they submit)
+  try {
+    await fetch(`${SERVER}/post_message/${VOTES_KEY}/${playerId}`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ word, ts: Date.now() })
+    });
+  } catch (e) {
+    console.warn('Vote post failed:', e);
+  }
+}
+
+submitBtn.addEventListener('click', () => {
+  const w = voteInput.value;
+  if (w.trim()) { submitVote(w); voteInput.value = ''; }
+});
+voteInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const w = voteInput.value;
+    if (w.trim()) { submitVote(w); voteInput.value = ''; }
+  }
+});
+
+// ── Prompt overlay ────────────────────────────────────────────
+promptOverlay.addEventListener('click', () => {
+  promptOverlay.classList.remove('show');
+  voteInput.focus();
+});
+
+let _overlayTimer = null;
+function showNewPrompt(prompt) {
+  lastPrompt             = prompt;
+  olWord.textContent     = prompt;
+  promptText.textContent = prompt;
+  promptPanel.style.display = 'block';
+  promptOverlay.classList.add('show');
+  voteInput.value = '';   // clear any partial typing
+  // Auto-dismiss after 3 s
+  clearTimeout(_overlayTimer);
+  _overlayTimer = setTimeout(() => {
+    promptOverlay.classList.remove('show');
+    voteInput.focus();
+  }, 3000);
+}
+
+// ── Server polling ────────────────────────────────────────────
+const STALE_MS = 7_200_000; // ignore state older than 2 hours
+
+async function pollState() {
+  try {
+    const res   = await fetch(`${SERVER}/get_message/${STATE_KEY}`);
+    const state = await res.json();
+
+    if (!state || !state.sentAt) return;
+    if (state.sentAt < Date.now() - STALE_MS) return;  // stale from old session
+    if (state.sentAt <= lastSentAt) return;             // already processed
+    lastSentAt = state.sentAt;
+
+    switch (state.action) {
+      case 'start':  startScheduler(state.startAt); break;
+      case 'stop':   stopScheduler();               break;
+      case 'reset':  resetScheduler();              break;
+    }
+
+    if (state.prompt && state.prompt !== lastPrompt) {
+      showNewPrompt(state.prompt);
+    }
+  } catch (_) { /* network hiccup — ignore */ }
+}
+
+setInterval(pollState, POLL_MS);
+pollState();
+
+// ── Utility ───────────────────────────────────────────────────
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+</script>
+</body>
+</html>

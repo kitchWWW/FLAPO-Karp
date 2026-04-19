@@ -1,0 +1,334 @@
+/* ============================================================
+   Karp 2025 — Y2K Fun / Quirky Light Mode
+   Neopets × Newgrounds × Myspace energy
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #fff0fa;
+  --surface:  #ffffff;
+  --text:     #220033;
+  --muted:    #884499;
+  --pink:     #e0089a;
+  --purple:   #7700cc;
+  --blue:     #0055ee;
+  --green:    #00bb44;
+  --danger:   #ee1100;
+  --warn:     #ee8800;
+  --font:     Tahoma, Geneva, Verdana, Arial, sans-serif;
+  --font-big: Impact, 'Arial Black', 'Arial Bold', Arial, sans-serif;
+
+  /* Re-alias to shared class names used in HTML */
+  --accent:       var(--pink);
+  --accent-light: #ff55cc;
+  --border:       #dd88cc;
+  --border-light: #ffccee;
+}
+
+/* ── Base ──────────────────────────────────────────────────── */
+html, body {
+  min-height:  100vh;
+  font-family: var(--font);
+  font-size:   16px;
+  color:       var(--text);
+}
+
+body {
+  display:               flex;
+  flex-direction:        column;
+  /* Diamond argyle tile — the quintessential Y2K background */
+  background-color: #fff0fa;
+  background-image:
+    linear-gradient(135deg, rgba(224,8,154,0.07) 25%, transparent 25%),
+    linear-gradient(225deg, rgba(224,8,154,0.07) 25%, transparent 25%),
+    linear-gradient(315deg, rgba(224,8,154,0.07) 25%, transparent 25%),
+    linear-gradient(45deg,  rgba(224,8,154,0.07) 25%, transparent 25%);
+  background-size:     22px 22px;
+  background-position: 0 0, 11px 0, 11px -11px, 0 11px;
+}
+
+/* ── Page header — hot rainbow gradient bar ────────────────── */
+.page-header {
+  background:    linear-gradient(90deg, #ff0099 0%, #aa00ff 40%, #0055ee 75%, #00ccbb 100%);
+  padding:       0.6rem 1rem;
+  border-bottom: 3px solid #aa0077;
+  box-shadow:    0 4px 10px rgba(170, 0, 120, 0.35);
+  display:       flex;
+  align-items:   center;
+  justify-content: space-between;
+  flex-shrink:   0;
+}
+
+.page-title {
+  font-family:    var(--font-big);
+  font-size:      1.35rem;
+  color:          white;
+  letter-spacing: 0.06em;
+  text-shadow:
+    2px 2px 0 rgba(0,0,0,0.35),
+    0 0 12px rgba(255,200,255,0.6);
+}
+
+/* ── Page body ─────────────────────────────────────────────── */
+.page-body {
+  padding:        1rem;
+  flex:           1;
+  display:        flex;
+  flex-direction: column;
+  gap:            0.85rem;
+  overflow-y:     auto;
+}
+
+/* ── Panels — chunky card with offset shadow ───────────────── */
+.panel {
+  background:    white;
+  border:        2.5px solid #dd55bb;
+  border-radius: 10px;
+  padding:       0.9rem 1.05rem;
+  box-shadow:    5px 5px 0 #cc0088,
+                 0 0 0 1px #ffaadd;
+  position: relative;
+}
+
+.panel-label {
+  display:        block;
+  font-family:    var(--font-big);
+  font-size:      0.95rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color:          var(--purple);
+  margin-bottom:  0.65rem;
+  text-shadow:    1px 1px 0 rgba(119,0,204,0.2);
+}
+
+/* ── Text inputs ───────────────────────────────────────────── */
+input[type="text"] {
+  width:         100%;
+  background:    #fff8fe;
+  border:        2px solid #cc55aa;
+  border-top-color:  #aa3388;
+  border-left-color: #aa3388;
+  color:         var(--text);
+  font-family:   var(--font);
+  font-size:     1rem;
+  padding:       0.5rem 0.75rem;
+  border-radius: 5px;
+  outline:       none;
+  box-shadow:    inset 0 2px 5px rgba(200,0,120,0.1);
+  transition:    border-color 0.15s, box-shadow 0.15s;
+}
+input[type="text"]:focus {
+  border-color: var(--pink);
+  box-shadow:   inset 0 2px 5px rgba(200,0,120,0.1),
+                0 0 0 3px rgba(224,8,154,0.22);
+}
+input[type="text"]::placeholder { color: #cc88bb; }
+
+/* ── Range sliders ─────────────────────────────────────────── */
+input[type="range"] {
+  width:        100%;
+  accent-color: var(--pink);
+  cursor:       pointer;
+  display:      block;
+  margin:       0.3rem 0 0;
+}
+
+/* ── Selects ───────────────────────────────────────────────── */
+select {
+  width:         100%;
+  background:    linear-gradient(to bottom, #fff0fa, #ffd8f0);
+  border:        2px solid #cc55aa;
+  color:         var(--text);
+  font-family:   var(--font);
+  font-size:     0.95rem;
+  padding:       0.45rem 0.65rem;
+  border-radius: 5px;
+  outline:       none;
+  cursor:        pointer;
+  box-shadow:    0 2px 4px rgba(200,0,120,0.1);
+}
+
+/* ── Checkboxes ────────────────────────────────────────────── */
+input[type="checkbox"] {
+  accent-color: var(--pink);
+  cursor:       pointer;
+  width:        13px;
+  height:       13px;
+}
+
+/* ── Buttons — chunky beveled 3D Y2K style ─────────────────── */
+button {
+  font-family:    var(--font);
+  font-size:      0.9rem;
+  font-weight:    bold;
+  letter-spacing: 0.03em;
+  padding:        0.5rem 1.2rem;
+  border-radius:  7px;
+  cursor:         pointer;
+  white-space:    nowrap;
+  transition:     transform 0.08s, box-shadow 0.08s;
+
+  /* Default: pink */
+  background:   linear-gradient(to bottom, #ff88dd 0%, #dd0099 55%, #bb0077 56%, #ee44bb 100%);
+  border:       2px solid #880066;
+  color:        white;
+  text-shadow:  1px 1px 2px rgba(0,0,0,0.45);
+  box-shadow:   3px 3px 0 #880055,
+                inset 0 1px 0 rgba(255,255,255,0.35);
+}
+button:hover:not(:disabled) {
+  background: linear-gradient(to bottom, #ffaaee 0%, #ee11aa 55%, #cc0088 56%, #ff55cc 100%);
+  transform:  translateY(-1px);
+  box-shadow: 4px 4px 0 #880055, inset 0 1px 0 rgba(255,255,255,0.35);
+}
+button:active:not(:disabled) {
+  transform:  translate(3px, 3px);
+  box-shadow: none;
+}
+button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* Accent = electric blue */
+button.btn-accent {
+  background: linear-gradient(to bottom, #66aaff 0%, #0055ee 55%, #0033bb 56%, #3377ff 100%);
+  border-color: #002299;
+  box-shadow:   3px 3px 0 #001188, inset 0 1px 0 rgba(255,255,255,0.3);
+}
+button.btn-accent:hover:not(:disabled) {
+  background: linear-gradient(to bottom, #88bbff 0%, #1166ff 55%, #0044cc 56%, #4488ff 100%);
+  box-shadow: 4px 4px 0 #001188, inset 0 1px 0 rgba(255,255,255,0.3);
+}
+
+/* Danger = red */
+button.btn-danger {
+  background: linear-gradient(to bottom, #ff7766 0%, #dd1100 55%, #bb0000 56%, #ee3322 100%);
+  border-color: #880000;
+  box-shadow:   3px 3px 0 #660000, inset 0 1px 0 rgba(255,255,255,0.3);
+}
+button.btn-danger:hover:not(:disabled) {
+  background: linear-gradient(to bottom, #ff9988 0%, #ee2211 55%, #cc0000 56%, #ff4433 100%);
+  box-shadow: 4px 4px 0 #660000, inset 0 1px 0 rgba(255,255,255,0.3);
+}
+
+/* Warn = orange */
+button.btn-warn {
+  background: linear-gradient(to bottom, #ffcc44 0%, #ee8800 55%, #cc6600 56%, #ff9922 100%);
+  border-color: #885500;
+  box-shadow:   3px 3px 0 #664400, inset 0 1px 0 rgba(255,255,255,0.3);
+}
+button.btn-warn:hover:not(:disabled) {
+  background: linear-gradient(to bottom, #ffdd66 0%, #ff9911 55%, #dd7700 56%, #ffaa33 100%);
+  box-shadow: 4px 4px 0 #664400, inset 0 1px 0 rgba(255,255,255,0.3);
+}
+
+/* ── Layout helpers ────────────────────────────────────────── */
+.row          { display: flex; gap: 0.6rem; align-items: flex-end; }
+.row .grow    { flex: 1; min-width: 0; }
+.grid-2       { display: grid; grid-template-columns: 1fr 1fr;     gap: 0.75rem; }
+.grid-3       { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
+
+/* ── Slider label groups ───────────────────────────────────── */
+.slider-group label {
+  display:         flex;
+  justify-content: space-between;
+  font-size:       0.78rem;
+  font-weight:     bold;
+  letter-spacing:  0.06em;
+  text-transform:  uppercase;
+  color:           var(--muted);
+}
+.slider-group label .val {
+  color:          var(--purple);
+  font-size:      0.85rem;
+  letter-spacing: 0;
+  font-weight:    bold;
+}
+
+/* ── Status line ───────────────────────────────────────────── */
+/* On rainbow header */
+.page-header .status-line {
+  color:       rgba(255,255,255,0.9);
+  font-size:   0.85rem;
+  font-weight: bold;
+}
+.page-header .status-line .dot {
+  background: rgba(255,255,255,0.3);
+  border: 1.5px solid rgba(255,255,255,0.6);
+}
+.page-header .status-line .dot.active {
+  background:  #aaffaa;
+  border-color: #00dd44;
+  box-shadow:  0 0 7px #00ff55, 0 0 14px #00ff55;
+}
+
+/* Elsewhere */
+.status-line {
+  display:     flex;
+  align-items: center;
+  gap:         0.5rem;
+  font-size:   0.85rem;
+  color:       var(--muted);
+  font-weight: bold;
+}
+.status-line .dot {
+  width:         9px;
+  height:        9px;
+  border-radius: 50%;
+  background:    #ddaacc;
+  border:        1.5px solid #cc88bb;
+  flex-shrink:   0;
+  transition:    all 0.15s;
+}
+.status-line .dot.active {
+  background:  var(--green);
+  border-color: #009933;
+  box-shadow:  0 0 6px #00ff55, 0 0 12px rgba(0,255,80,0.4);
+}
+.status-line .val { color: var(--purple); }
+
+/* ── Vote bar rows ─────────────────────────────────────────── */
+.vote-row {
+  display:       flex;
+  align-items:   center;
+  gap:           0.75rem;
+  padding:       0.42rem 0;
+  border-bottom: 1.5px dashed #ffaadd;
+}
+.vote-row:last-child { border-bottom: none; }
+
+.vote-word {
+  flex:          0 0 auto;
+  min-width:     90px;
+  max-width:     220px;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+  white-space:   nowrap;
+  color:         var(--purple);
+  font-size:     1rem;
+  font-weight:   bold;
+  text-shadow:   1px 1px 0 rgba(119,0,204,0.2);
+}
+
+.vote-bar-wrap {
+  flex:          1;
+  background:    linear-gradient(to bottom, #ffddee, #ffccdd);
+  height:        12px;
+  border-radius: 6px;
+  overflow:      hidden;
+  border:        1.5px solid #dd88bb;
+  box-shadow:    inset 0 2px 4px rgba(200,0,120,0.15), 2px 2px 0 #cc66aa;
+}
+.vote-bar {
+  height:        100%;
+  background:    linear-gradient(to right, #ff44cc, #aa00ff, #0066ff);
+  border-radius: 6px;
+  transition:    width 0.5s ease;
+  box-shadow:    inset 0 1px 0 rgba(255,255,255,0.45);
+}
+.vote-count {
+  flex:        0 0 2.5ch;
+  text-align:  right;
+  color:       var(--purple);
+  font-size:   0.95rem;
+  font-weight: bold;
+}

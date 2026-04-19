@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Karp 2025</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      align-items:     center;
+      justify-content: center;
+      min-height:      100vh;
+      flex-direction:  row; /* override column so card centres properly */
+    }
+
+    .index-card {
+      background:    white;
+      border:        3px solid #dd55bb;
+      border-radius: 14px;
+      padding:       2.2rem 2.6rem 2rem;
+      box-shadow:    7px 7px 0 #cc0088,
+                     0 0 0 1px #ffaadd;
+      text-align:    center;
+      width:         300px;
+    }
+
+    .index-logo {
+      font-family:    var(--font-big);
+      font-size:      2.6rem;
+      color:          var(--pink);
+      letter-spacing: 0.04em;
+      text-shadow:
+        3px 3px 0 var(--purple),
+        0 0 20px rgba(224,8,154,0.35);
+      line-height: 1;
+    }
+
+    .index-sub {
+      font-size:      0.65rem;
+      font-weight:    bold;
+      color:          var(--muted);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-top:     0.4rem;
+      margin-bottom:  1.6rem;
+    }
+
+    .divider {
+      border:        none;
+      border-top:    2px dashed #ffaadd;
+      margin-bottom: 1.4rem;
+    }
+
+    .link-list {
+      display:        flex;
+      flex-direction: column;
+      gap:            0.65rem;
+    }
+
+    .link-list a {
+      display:        block;
+      padding:        0.7rem 1.2rem;
+      border-radius:  8px;
+      font-weight:    bold;
+      font-size:      1rem;
+      font-family:    var(--font);
+      text-decoration: none;
+      transition:     transform 0.08s, box-shadow 0.08s;
+
+      /* Pink default */
+      background:   linear-gradient(to bottom, #ff88dd 0%, #dd0099 55%, #bb0077 56%, #ee44bb 100%);
+      border:       2px solid #880066;
+      color:        white;
+      text-shadow:  1px 1px 2px rgba(0,0,0,0.4);
+      box-shadow:   3px 3px 0 #880055, inset 0 1px 0 rgba(255,255,255,0.3);
+    }
+    .link-list a:nth-child(2) {
+      background:   linear-gradient(to bottom, #66aaff 0%, #0055ee 55%, #0033bb 56%, #3377ff 100%);
+      border-color: #002299;
+      box-shadow:   3px 3px 0 #001188, inset 0 1px 0 rgba(255,255,255,0.3);
+    }
+    .link-list a:nth-child(3) {
+      background:   linear-gradient(to bottom, #88dd88 0%, #22aa22 55%, #118811 56%, #44cc44 100%);
+      border-color: #116611;
+      box-shadow:   3px 3px 0 #004400, inset 0 1px 0 rgba(255,255,255,0.3);
+    }
+    .link-list a:hover {
+      transform:  translateY(-2px);
+    }
+    .link-list a:active {
+      transform:  translate(3px, 3px);
+      box-shadow: none !important;
+    }
+
+    .link-sub {
+      display:        block;
+      font-size:      0.75rem;
+      font-weight:    normal;
+      letter-spacing: 0.06em;
+      color:          rgba(255,255,255,0.8);
+      margin-top:     0.15rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="index-card">
+    <div class="index-logo">KARP</div>
+    <div class="index-sub">★ 2025 ★</div>
+    <hr class="divider">
+    <nav class="link-list">
+      <a href="player.html" target="_blank" rel="noopener">
+        Player
+        <span class="link-sub">vote &amp; sonification</span>
+      </a>
+      <a href="admin.html" target="_blank" rel="noopener">
+        Admin
+        <span class="link-sub">transport &amp; prompts</span>
+      </a>
+      <a href="projector.html" target="_blank" rel="noopener">
+        Projector
+        <span class="link-sub">live vote display</span>
+      </a>
+    </nav>
+  </div>
+
+</body>
+</html>
