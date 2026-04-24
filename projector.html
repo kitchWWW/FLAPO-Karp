@@ -15,6 +15,17 @@
       height:         100vh;
     }
 
+    /* ── Title letter bounce ─────────────────────────────────── */
+    #title-syno .tl { display: inline-block; }
+    @keyframes tl-bounce {
+      0%, 100% { transform: translateY(0)    scaleY(1);    }
+      28%       { transform: translateY(-8px) scaleY(1.05); }
+      58%       { transform: translateY(-2px) scaleY(0.97); }
+    }
+    #title-syno .tl.bouncing {
+      animation: tl-bounce 0.52s cubic-bezier(.36,.07,.19,.97) forwards;
+    }
+
     /* ── Prompt area ──────────────────────────────────────── */
     #proj-prompt-area {
       padding:       1.2rem 1.8rem 0.8rem;
@@ -161,7 +172,7 @@
 
 <!-- ── Header ──────────────────────────────────────────────── -->
 <div class="page-header">
-  <span class="page-title">SynoRhythm — Projector</span>
+  <span class="page-title"><span id="title-syno">SynoRhythm</span></span>
   <span class="status-line">
     <span class="dot" id="conn-dot"></span>
     <span id="conn-label" style="font-size:0.65rem;">connecting…</span>
@@ -325,6 +336,30 @@ async function poll() {
 
 setInterval(poll, POLL_MS);
 poll();
+
+// ── Title wave bounce ─────────────────────────────────────────
+(function () {
+  const wrapper = document.getElementById('title-syno');
+  const letters = [...wrapper.textContent].map(ch => {
+    const s = document.createElement('span');
+    s.className = 'tl';
+    s.textContent = ch;
+    return s;
+  });
+  wrapper.textContent = '';
+  letters.forEach(s => wrapper.appendChild(s));
+
+  function wave() {
+    letters.forEach((s, i) => {
+      setTimeout(() => {
+        s.classList.add('bouncing');
+        s.addEventListener('animationend', () => s.classList.remove('bouncing'), { once: true });
+      }, i * 65);
+    });
+    setTimeout(wave, 5000 + Math.random() * 8000);
+  }
+  setTimeout(wave, 2000 + Math.random() * 3000);
+})();
 
 // ── Fullscreen ────────────────────────────────────────────────
 function toggleFullscreen() {

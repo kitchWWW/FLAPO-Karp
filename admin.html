@@ -163,13 +163,29 @@
       <span class="dot" id="play-dot"></span>
       <span id="play-label">idle</span>
     </div>
+    <div style="margin-top:0.75rem;">
+      <span class="tempo-sub-label">Session Tempo List (BPM, comma-separated — sent at start)</span>
+      <div class="row">
+        <input type="text" class="grow" id="tempo-list-input"
+               value="150" placeholder="e.g. 150, 144, 120, 90" autocomplete="off">
+      </div>
+    </div>
   </div>
 
-  <!-- ── Sonification Pattern ──────────────────────────────── -->
+  <!-- ── Send Prompt (everything above the button is sent together) ── -->
   <div class="panel">
-    <span class="panel-label">Sonification Pattern</span>
+    <span class="panel-label">Send Prompt</span>
+
+    <div class="tempo-next-row">
+      <span class="tempo-sub-label" style="margin:0;white-space:nowrap;">BPM</span>
+      <input type="number" id="bpm-input" class="bpm-input"
+             min="20" max="400" step="1" placeholder="—">
+      <span id="bpm-ratio-hint"></span>
+    </div>
+
+    <span class="tempo-sub-label" style="margin-top:0.9rem;">Sonification Pattern</span>
     <div class="pattern-btns">
-      <button class="btn-pattern btn-pattern-active" data-pattern="letter-gates">Letter Gates</button>
+      <button class="btn-pattern" data-pattern="letter-gates">Letter Gates</button>
       <button class="btn-pattern" data-pattern="vowel-gates">Vowel Gates</button>
       <button class="btn-pattern" data-pattern="consonant-gates">Consonant Gates</button>
       <button class="btn-pattern" data-pattern="shared-gates">Shared Gates</button>
@@ -181,42 +197,29 @@
              placeholder="Enter secret word…" autocomplete="off">
       <button id="set-secret-btn">Set</button>
     </div>
-  </div>
 
-  <!-- ── Timbre ────────────────────────────────────────────── -->
-  <div class="panel">
-    <span class="panel-label">Timbre</span>
-    <div class="pattern-btns" style="margin-bottom:0;">
-      <button class="btn-pattern btn-timbre btn-pattern-active" data-timbre="tone">Sine Tone</button>
+    <span class="tempo-sub-label" style="margin-top:0.9rem;">Sound</span>
+    <div class="pattern-btns" style="margin-bottom:0.5rem;">
+      <button class="btn-pattern btn-timbre" data-timbre="tone">Sine Tone</button>
       <button class="btn-pattern btn-timbre" data-timbre="noise">White Noise</button>
+      <button class="btn-pattern btn-timbre" data-timbre="files">Samples</button>
     </div>
-  </div>
-
-  <!-- ── Tempo ─────────────────────────────────────────────── -->
-  <div class="panel">
-    <span class="panel-label">Tempo</span>
-
-    <span class="tempo-sub-label">Session Tempo List (BPM, comma-separated — sent at start)</span>
-    <div class="row">
-      <input type="text" class="grow" id="tempo-list-input"
-             value="150" placeholder="e.g. 150, 144, 120, 90" autocomplete="off">
+    <div id="sample-picker" style="display:none;">
+      <span class="tempo-sub-label">Sample</span>
+      <div class="pattern-btns" style="margin-bottom:0;">
+        <button class="btn-pattern btn-sample" data-sample="0">1</button>
+        <button class="btn-pattern btn-sample" data-sample="1">2</button>
+        <button class="btn-pattern btn-sample" data-sample="2">3</button>
+        <button class="btn-pattern btn-sample" data-sample="3">4</button>
+        <button class="btn-pattern btn-sample" data-sample="4">5</button>
+        <button class="btn-pattern btn-sample" data-sample="5">6</button>
+      </div>
     </div>
 
-    <div class="tempo-next-row">
-      <span class="tempo-sub-label" style="margin:0;white-space:nowrap;">Next Prompt BPM</span>
-      <input type="number" id="bpm-input" class="bpm-input" value="150"
-             min="20" max="400" step="1">
-      <span id="bpm-ratio-hint"></span>
-    </div>
-  </div>
-
-  <!-- ── Prompt ──────────────────────────────────────────── -->
-  <div class="panel">
-    <span class="panel-label">Prompt</span>
-    <div class="row">
+    <div class="row" style="margin-top:1rem; padding-top:0.75rem; border-top:2px dashed #ffaadd;">
       <input type="text" class="grow" id="prompt-input"
              placeholder="Enter prompt text…" autocomplete="off">
-      <button class="btn-accent" id="send-prompt-btn">Send Prompt</button>
+      <button class="btn-accent" id="send-prompt-btn" disabled>Send Prompt</button>
     </div>
   </div>
 
@@ -271,12 +274,15 @@ const setSecretBtn    = $('set-secret-btn');
 const tempoListInput  = $('tempo-list-input');
 const bpmInput        = $('bpm-input');
 const bpmRatioHint    = $('bpm-ratio-hint');
-const patternBtns     = document.querySelectorAll('.btn-pattern:not(.btn-timbre)');
+const patternBtns     = document.querySelectorAll('.btn-pattern:not(.btn-timbre):not(.btn-sample)');
 const timbreBtns      = document.querySelectorAll('.btn-timbre');
+const sampleBtns      = document.querySelectorAll('.btn-sample');
+const samplePicker    = $('sample-picker');
 
 // ── Pattern + timbre state ────────────────────────────────────
-let activePattern = 'letter-gates';
-let activeTimbre  = 'tone';
+let activePattern     = '';
+let activeTimbre      = '';
+let activeSampleIndex = null;
 
 // ── Tempo / BPM state ─────────────────────────────────────────
 let lastBPM          = 150;
@@ -300,39 +306,60 @@ function computeAutoTempo(prevLen, currLen, currentBPM, lastDirection) {
   return Math.max(20, Math.min(400, Math.round(currentBPM * ratio * 10) / 10));
 }
 
+// ── Send-button validation ────────────────────────────────────
+function isReadyToSend() {
+  if (!promptInput.value.trim()) return false;
+  const bpm = parseFloat(bpmInput.value);
+  if (!bpm || bpm < 20 || bpm > 400) return false;
+  if (!activePattern) return false;
+  if (!activeTimbre)  return false;
+  if (activeTimbre === 'files' && activeSampleIndex === null) return false;
+  return true;
+}
+function refreshSendBtn() {
+  sendPromptBtn.disabled = !isReadyToSend();
+}
+
 // Auto-compute BPM as admin types a new prompt
 promptInput.addEventListener('input', () => {
-  if (!prevPromptText) return;
-  const curr = promptInput.value.trim();
-  if (!curr) return;
-  const newBPM = computeAutoTempo(prevPromptText.length, curr.length, lastBPM, lastBPMDirection);
-  bpmInput.value = newBPM;
-  const g = gcd(prevPromptText.length, curr.length);
-  const dir = lastBPMDirection === 'increased' ? '↓' : '↑';
-  bpmRatioHint.textContent =
-    `ratio ${prevPromptText.length/g}:${curr.length/g} ${dir}`;
+  if (prevPromptText) {
+    const curr = promptInput.value.trim();
+    if (curr) {
+      const newBPM = computeAutoTempo(prevPromptText.length, curr.length, lastBPM, lastBPMDirection);
+      bpmInput.value = newBPM;
+      const g = gcd(prevPromptText.length, curr.length);
+      const dir = lastBPMDirection === 'increased' ? '↓' : '↑';
+      bpmRatioHint.textContent =
+        `ratio ${prevPromptText.length/g}:${curr.length/g} ${dir}`;
+    }
+  }
+  refreshSendBtn();
 });
+bpmInput.addEventListener('input', refreshSendBtn);
 
-// ── Pattern + timbre posting ──────────────────────────────────
-async function postPattern(patternName) {
-  activePattern = patternName;
-  patternBtns.forEach(btn => {
-    btn.classList.toggle('btn-pattern-active', btn.dataset.pattern === patternName);
-  });
+// ── Pattern + timbre posting (only called from Send Prompt) ───
+function postPattern() {
   return fetch(`${SERVER}/post_message/${PATTERN_KEY}`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({
-      patternName,
-      secretWord: secretWordInput.value.trim(),
-      timbreType: activeTimbre,
-      sentAt:     Date.now()
+      patternName:  activePattern,
+      secretWord:   secretWordInput.value.trim(),
+      timbreType:   activeTimbre,
+      sampleIndex:  activeSampleIndex ?? 0,
+      sentAt:       Date.now()
     })
   });
 }
 
 patternBtns.forEach(btn => {
-  btn.addEventListener('click', () => postPattern(btn.dataset.pattern));
+  btn.addEventListener('click', () => {
+    activePattern = btn.dataset.pattern;
+    patternBtns.forEach(b => {
+      b.classList.toggle('btn-pattern-active', b.dataset.pattern === activePattern);
+    });
+    refreshSendBtn();
+  });
 });
 
 timbreBtns.forEach(btn => {
@@ -341,12 +368,22 @@ timbreBtns.forEach(btn => {
     timbreBtns.forEach(b => {
       b.classList.toggle('btn-pattern-active', b.dataset.timbre === activeTimbre);
     });
-    postPattern(activePattern);
+    samplePicker.style.display = activeTimbre === 'files' ? 'block' : 'none';
+    refreshSendBtn();
   });
 });
 
-setSecretBtn.addEventListener('click', async () => {
-  await postPattern(activePattern);
+sampleBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeSampleIndex = +btn.dataset.sample;
+    sampleBtns.forEach(b => {
+      b.classList.toggle('btn-pattern-active', +b.dataset.sample === activeSampleIndex);
+    });
+    refreshSendBtn();
+  });
+});
+
+setSecretBtn.addEventListener('click', () => {
   setSecretBtn.textContent = 'Set ✓';
   setTimeout(() => { setSecretBtn.textContent = 'Set'; }, 1500);
 });
@@ -387,7 +424,6 @@ startBtn.addEventListener('click', async () => {
   if (!tempoList.length) tempoList.push(bpm);
 
   await postState({ action: 'start', startAt, prompt: prompt || undefined, bpm, tempoList });
-  await postPattern(activePattern);
 
   lastBPM = bpm;
 
@@ -405,29 +441,52 @@ stopBtn.addEventListener('click', async () => {
   startBtn.textContent  = '▶ Start (sync in 5 s)';
 });
 
-resetBtn.addEventListener('click', async () => {
-  if (!confirm('Reset all players, clear votes, and clear prompt?')) return;
+async function doReset() {
   await doClearVotes();
   await fetch(`${SERVER}/clear_message/${STATE_KEY}`, { method: 'POST' });
   await postState({ action: 'reset', prompt: '' });
   playDot.classList.remove('active');
-  playLabel.textContent = 'idle';
-  startBtn.disabled     = false;
-  startBtn.textContent  = '▶ Start (sync in 5 s)';
-  promptInput.value     = '';
-  prevPromptText        = '';
+  playLabel.textContent    = 'idle';
+  startBtn.disabled        = false;
+  startBtn.textContent     = '▶ Start (sync in 5 s)';
+  promptInput.value        = '';
+  prevPromptText           = '';
+  bpmInput.value           = '';
   bpmRatioHint.textContent = '';
+  activePattern            = '';
+  activeTimbre             = '';
+  activeSampleIndex        = null;
+  patternBtns.forEach(b => b.classList.remove('btn-pattern-active'));
+  timbreBtns.forEach(b  => b.classList.remove('btn-pattern-active'));
+  sampleBtns.forEach(b  => b.classList.remove('btn-pattern-active'));
+  samplePicker.style.display = 'none';
   renderVotes({});
+  refreshSendBtn();
+}
+
+// sendBeacon is the only fetch that survives page close
+function beaconReset() {
+  const body = new Blob(
+    [JSON.stringify({ action: 'reset', prompt: '', sentAt: Date.now() })],
+    { type: 'application/json' }
+  );
+  navigator.sendBeacon(`${SERVER}/clear_message/${VOTES_KEY}`);
+  navigator.sendBeacon(`${SERVER}/clear_message/${STATE_KEY}`);
+  navigator.sendBeacon(`${SERVER}/post_message/${STATE_KEY}`, body);
+}
+
+resetBtn.addEventListener('click', async () => {
+  if (!confirm('Reset all players, clear votes, and clear prompt?')) return;
+  await doReset();
 });
 
 sendPromptBtn.addEventListener('click', async () => {
   const prompt = promptInput.value.trim();
-  if (!prompt) { promptInput.focus(); return; }
-  const bpm = parseFloat(bpmInput.value) || lastBPM;
+  const bpm    = parseFloat(bpmInput.value) || lastBPM;
 
   await doClearVotes();
   await postState({ action: 'prompt', prompt, bpm });
-  await postPattern(activePattern);
+  await postPattern();
 
   // Update direction tracking for next auto-compute
   if (bpm > lastBPM)      lastBPMDirection = 'increased';
@@ -440,7 +499,7 @@ sendPromptBtn.addEventListener('click', async () => {
   setTimeout(() => { sendPromptBtn.textContent = 'Send Prompt'; }, 1800);
 });
 promptInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter') sendPromptBtn.click();
+  if (e.key === 'Enter' && !sendPromptBtn.disabled) sendPromptBtn.click();
 });
 
 clearVotesBtn.addEventListener('click', async () => {
@@ -497,6 +556,10 @@ async function pollVotes() {
 
 setInterval(pollVotes, POLL_MS);
 pollVotes();
+
+// Auto-reset on open and close
+doReset();
+window.addEventListener('beforeunload', beaconReset);
 </script>
 </body>
 </html>

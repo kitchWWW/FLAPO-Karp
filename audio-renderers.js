@@ -180,48 +180,67 @@ class WhiteNoiseRenderer extends AudioRenderer {
 
 
 // ─────────────────────────────────────────────────────────────
-// AUDIO FILE RENDERER  (stub — ready for wiring up)
-// Map each character to a file URL in this.fileMap, e.g.:
-//   this.fileMap = { 'A': 'sounds/a.mp3', 'B': 'sounds/b.mp3', … }
-// Files are fetched and decoded once, then cached.
+// AUDIO FILE RENDERER
+// Picks one of the sample files based on the current prompt
+// (deterministic hash so all players agree without coordination).
+// Files are loaded once and cached; playback is pitch-shifted via
+// playbackRate relative to each file's recorded reference pitch.
+// Each note is a one-shot trigger: plays for exactly noteDur seconds.
 // ─────────────────────────────────────────────────────────────
 class AudioFileRenderer extends AudioRenderer {
   constructor(audioCtx) {
     super(audioCtx);
-    this._cache  = {};
-    this.fileMap = {
-      // TODO: populate with actual paths
-      // 'A': 'sounds/a.mp3',
-    };
+    this._cache   = {};
+    this._fileIdx = 0;
+    this._samples = [
+      { path: 'res/9.wav',                                    refHz: 261.63 },
+      { path: 'res/bassoon_A2_1_piano_normal.wav',            refHz: 110.00 },
+      { path: 'res/cello_Ds2_15_fortissimo_arco-normal.wav',  refHz:  77.78 },
+      { path: 'res/dulcimer-20260424-165001.wav',             refHz: 261.63 },
+      { path: 'res/lyrics2-20260424-165022.wav',              refHz: 261.63 },
+      { path: 'res/spoons-20260424-165044.wav',               refHz: 261.63 },
+    ];
+    this._samples.forEach(s => this._preload(s.path));
   }
 
-  async _load(char) {
-    const key = char.toUpperCase();
-    if (this._cache[key]) return this._cache[key];
-    const url = this.fileMap[key];
-    if (!url) return null;
-    try {
-      const res = await fetch(url);
-      const arr = await res.arrayBuffer();
-      const buf = await this.audioCtx.decodeAudioData(arr);
-      this._cache[key] = buf;
-      return buf;
-    } catch (e) {
-      console.warn('AudioFileRenderer: failed to load', url, e);
-      return null;
-    }
+  setFileIndex(idx) {
+    this._fileIdx = ((idx | 0) % this._samples.length + this._samples.length) % this._samples.length;
+  }
+
+  _preload(path) {
+    if (path in this._cache) return;
+    this._cache[path] = null; // mark in-flight
+    fetch(path)
+      .then(r => r.arrayBuffer())
+      .then(arr => this.audioCtx.decodeAudioData(arr))
+      .then(buf => { this._cache[path] = buf; })
+      .catch(e => console.warn('AudioFileRenderer: failed to load', path, e));
   }
 
   playNote(isOn, startTime, noteDur, pitch, decayTime, char) {
     if (!isOn) return;
-    this._load(char).then(buf => {
-      if (!buf) return;
-      const src = this.audioCtx.createBufferSource();
-      src.buffer = buf;
-      src.connect(this.masterGain);
-      src.start(startTime);
-      src.stop( startTime + noteDur);
-    });
+    const sample = this._samples[this._fileIdx];
+    const buf    = this._cache[sample.path];
+    if (!buf) return; // not loaded yet — skip silently
+
+    const ctx = this.audioCtx;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop   = false;
+    src.playbackRate.value = pitch / sample.refHz;
+
+    const env = ctx.createGain();
+    src.connect(env);
+    env.connect(this.masterGain);
+
+    // 10 ms attack + 20 ms fade-out to avoid clicks at note boundaries
+    env.gain.setValueAtTime(         0.0001, startTime);
+    env.gain.linearRampToValueAtTime(0.8,    startTime + 0.010);
+    env.gain.setValueAtTime(         0.8,    startTime + noteDur - 0.020);
+    env.gain.linearRampToValueAtTime(0.0001, startTime + noteDur);
+
+    src.start(startTime);
+    src.stop( startTime + noteDur);
   }
 }
 
