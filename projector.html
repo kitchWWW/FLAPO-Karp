@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Projector — Karp 2025</title>
+  <title>Projector — SynoRhythm</title>
   <link rel="stylesheet" href="style.css">
   <style>
     /* ── Projector layout ─────────────────────────────────── */
@@ -131,7 +131,7 @@
       justify-content: center;
       flex-direction:  column;
       text-align:      center;
-      animation:       fadeOut 0.5s ease 1.8s forwards;
+      animation:       fadeOut 0.5s ease 14.5s forwards;
       pointer-events:  none;
     }
     #prompt-flash.show { display: flex; }
@@ -161,7 +161,7 @@
 
 <!-- ── Header ──────────────────────────────────────────────── -->
 <div class="page-header">
-  <span class="page-title">Karp 2025 — Projector</span>
+  <span class="page-title">SynoRhythm — Projector</span>
   <span class="status-line">
     <span class="dot" id="conn-dot"></span>
     <span id="conn-label" style="font-size:0.65rem;">connecting…</span>
@@ -229,7 +229,7 @@ function flashPrompt(prompt) {
   promptFlash.classList.remove('show');
   void promptFlash.offsetWidth; // restart animation
   promptFlash.classList.add('show');
-  setTimeout(() => promptFlash.classList.remove('show'), 2400);
+  setTimeout(() => promptFlash.classList.remove('show'), 15500);
 }
 
 // ── Vote rendering ────────────────────────────────────────────

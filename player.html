@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Player — Karp 2025</title>
+  <title>Player — SynoRhythm</title>
   <link rel="stylesheet" href="style.css">
   <style>
     /* ── Welcome overlay ──────────────────────────────────── */
@@ -68,9 +68,33 @@
       padding:   0.65rem 0.85rem;
     }
 
+    /* ── Pitch button switch ──────────────────────────────── */
+    .pitch-btns {
+      display:    flex;
+      gap:        0.35rem;
+      flex-wrap:  nowrap;
+      margin-top: 0.3rem;
+    }
+
+    .btn-pitch {
+      flex:        1;
+      padding:     0.45rem 0.2rem;
+      font-family: var(--font-big);
+      font-size:   1.1rem;
+      letter-spacing: 0;
+      min-width:   0;
+    }
+
+    .btn-pitch-active {
+      background:   linear-gradient(to bottom, #66dd88 0%, #009933 55%, #007722 56%, #22cc55 100%) !important;
+      border-color: #005522 !important;
+      box-shadow:   3px 3px 0 #003311, inset 0 1px 0 rgba(255,255,255,0.35) !important;
+      color:        white !important;
+    }
+
     /* ── Sonification word display ────────────────────────── */
     #word-display-panel {
-      display: none; /* shown once a word exists */
+      display: none;
     }
 
     .queued-label {
@@ -96,7 +120,6 @@
       color:     var(--muted);
     }
 
-    /* Each character cell */
     .wchar {
       display:        inline-flex;
       flex-direction: column;
@@ -121,19 +144,15 @@
       transition:    background 0.05s, box-shadow 0.05s;
     }
 
-    /* ON character (plays a note) */
     .wchar.is-on .wchar-letter { color: #cc0088; opacity: 0.55; }
     .wchar.is-on .wchar-dot    { background: #cc0088; opacity: 0.4; }
 
-    /* OFF character (silence) */
     .wchar.is-off .wchar-letter { color: #cc99bb; opacity: 0.35; }
     .wchar.is-off .wchar-dot    { background: #ddbbcc; opacity: 0.35; }
 
-    /* Space character */
     .wchar.is-space .wchar-letter { color: transparent; min-width: 0.6em; }
     .wchar.is-space .wchar-dot    { background: #eeddee; opacity: 0.3; }
 
-    /* Active / currently playing */
     .wchar.active {
       transform: scale(1.18) translateY(-3px);
     }
@@ -214,6 +233,42 @@
       color:          var(--muted);
     }
 
+    /* ── Slider extreme labels ───────────────────────────── */
+    .slider-extremes {
+      display:     flex;
+      align-items: center;
+      gap:         0.4rem;
+      margin-top:  0.3rem;
+    }
+    .slider-extremes input[type="range"] {
+      flex:   1;
+      margin: 0;
+      width:  auto;
+    }
+    .extreme-lo, .extreme-hi {
+      font-size:      0.6rem;
+      font-weight:    bold;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color:          var(--muted);
+      flex-shrink:    0;
+    }
+
+    /* ── Pattern name badge ───────────────────────────────── */
+    .pattern-badge {
+      font-family:    var(--font);
+      font-size:      0.68rem;
+      font-weight:    bold;
+      letter-spacing: 0.04em;
+      color:          var(--purple);
+      background:     #f0e0ff;
+      border:         1.5px solid #cc99ee;
+      border-radius:  20px;
+      padding:        0.1em 0.6em;
+      text-transform: none;
+      white-space:    nowrap;
+    }
+
     /* ── Note flash ring ──────────────────────────────────── */
     @keyframes ring-flash {
       0%   { transform: scale(1);   opacity: 1;   }
@@ -247,7 +302,7 @@
 
 <!-- ── Header ──────────────────────────────────────────────── -->
 <div class="page-header">
-  <span class="page-title">Karp 2025 — Player</span>
+  <span class="page-title">SynoRhythm — Player</span>
   <span class="status-line">
     <span class="dot" id="sync-dot"></span>
     <span id="sync-label">waiting for start</span>
@@ -260,29 +315,19 @@
   <!-- Audio settings -->
   <div class="panel">
     <span class="panel-label">Audio Settings</span>
-    <div class="grid-3">
 
-      <div class="slider-group">
-        <label>Pitch <span class="val" id="pitch-val">—</span></label>
-        <input type="range" id="pitch-slider" min="0" max="1" step="0.001" value="0.5">
+    <div class="slider-group" style="margin-bottom:0.75rem;">
+      <label>Pitch</label>
+      <div class="pitch-btns" id="pitch-btns"></div>
+    </div>
+
+    <div class="slider-group">
+      <label>Decay</label>
+      <div class="slider-extremes">
+        <span class="extreme-lo">short</span>
+        <input type="range" id="decay-slider" min="0" max="1" step="0.001" value="0.453">
+        <span class="extreme-hi">long</span>
       </div>
-
-      <div class="slider-group">
-        <label>Decay <span class="val" id="decay-val">—</span></label>
-        <input type="range" id="decay-slider" min="0" max="1" step="0.001" value="0.637">
-      </div>
-
-      <div>
-        <div class="slider-group">
-          <label>Renderer <span class="val"></span></label>
-        </div>
-        <select id="renderer-select" style="margin-top:0.3rem;">
-          <option value="tone">Tone (sine)</option>
-          <option value="noise">White Noise</option>
-          <option value="files">Audio Files</option>
-        </select>
-      </div>
-
     </div>
   </div>
 
@@ -304,7 +349,10 @@
 
   <!-- Now Playing / sonification display -->
   <div class="panel" id="word-display-panel" style="flex:1;">
-    <span class="panel-label">Now Playing</span>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:0.65rem;">
+      <span class="panel-label" style="margin-bottom:0;">Now Playing</span>
+      <span class="pattern-badge" id="pattern-label">Letter Gates</span>
+    </div>
     <div id="word-display"><span class="no-word">—</span></div>
     <div class="queued-label" id="queued-label"></div>
   </div>
@@ -320,9 +368,9 @@
 
 </div>
 
-<!-- Welcome / audio-unlock overlay (shown on first load) -->
+<!-- Welcome / audio-unlock overlay -->
 <div id="welcome-overlay">
-  <div class="wc-title">KARP 2025</div>
+  <div class="wc-title">SynoRhythm</div>
   <div class="wc-sub">Interactive Score System</div>
   <div class="wc-tap">Tap to Join</div>
 </div>
@@ -331,6 +379,7 @@
 <div id="prompt-overlay">
   <div class="ol-eyebrow">New Prompt</div>
   <div class="ol-word" id="ol-word"></div>
+  <div class="ol-hint">tap to dismiss</div>
 </div>
 
 <!-- ── Scripts ─────────────────────────────────────────────── -->
@@ -339,18 +388,23 @@
 'use strict';
 
 // ── Config ────────────────────────────────────────────────────
-const SERVER    = 'https://relay.brianellissound.com';
-const NS        = 'karp2025';
-const STATE_KEY = `${NS}-state`;
-const VOTES_KEY = `${NS}-votes`;
-const POLL_MS   = 800;    // server poll interval
-const NOTE_DUR  = 0.400;  // seconds per note slot
-const LOOKAHEAD = 0.250;  // seconds to schedule ahead
-const TICK_MS   = 50;     // scheduler heartbeat
+const SERVER      = 'https://relay.brianellissound.com';
+const NS          = 'karp2025';
+const STATE_KEY   = `${NS}-state`;
+const VOTES_KEY   = `${NS}-votes`;
+const PATTERN_KEY = `${NS}-pattern`;
+const POLL_MS     = 800;
+const LOOKAHEAD   = 0.250;
+const TICK_MS     = 50;
+
+// ── Decay constants ───────────────────────────────────────────
+const DECAY_LO      = 0.040;
+const DECAY_HI      = 1.400;
+const DECAY_DEF     = 0.200;
+// Slider position [0–1] that corresponds to DECAY_DEF via logScale
+const DECAY_DEF_SV  = Math.log(DECAY_DEF / DECAY_LO) / Math.log(DECAY_HI / DECAY_LO);
 
 // ── Player identity ───────────────────────────────────────────
-// sessionStorage is per-tab, so each open window gets its own ID.
-// Refreshing the same tab preserves the ID (vote stays associated).
 let playerId = sessionStorage.getItem(`${NS}-pid`);
 if (!playerId) {
   playerId = 'p-' + Math.random().toString(36).slice(2, 10);
@@ -360,30 +414,52 @@ if (!playerId) {
 // ── Log-scale helper ──────────────────────────────────────────
 const logScale = (v, lo, hi) => lo * Math.pow(hi / lo, v);
 
-// ── Audio state ───────────────────────────────────────────────
-let audioCtx       = null;
-let renderer       = null;
-let isPlaying      = false;
-let audioStartTime = null;   // AudioContext time that maps to piece t=0
-let scheduledUpTo  = 0;      // AudioContext time we've scheduled notes to
-let tickTimer      = null;
-let currentWord    = '';     // word currently looping
-let pendingWord    = null;   // word queued for next note boundary
-let wordStartNote  = 0;      // global note index when currentWord began
+// ── Pitch setup ───────────────────────────────────────────────
+const p0           = 260 + Math.random() * (519 - 260);
+const pitchOptions = [0, 1, 2, 3, 4].map(i => p0 * Math.pow(4 / 3, i));
+let activePitchIdx = 0;
+let currentPitch   = pitchOptions[0];
 
-// ── Poll state ────────────────────────────────────────────────
-let lastSentAt  = 0;
-let lastPrompt  = '';
-let currentPitch = 440;
-let currentDecay = 0.2;
+// ── Audio state ───────────────────────────────────────────────
+let audioCtx            = null;
+let renderer            = null;
+let currentRendererType = 'tone';
+let isPlaying           = false;
+let audioStartTime      = null;
+let scheduledUpTo       = 0;
+let tickTimer           = null;
+let currentWord         = '';
+let pendingWord         = null;
+let wordStartNote       = 0;
+
+// ── Variable tempo ────────────────────────────────────────────
+// Each segment: { startNote, startTime (AudioContext), noteDur }
+// Pushed when tempo changes at a word boundary.
+let currentNoteDur      = 0.400;
+let pendingNoteDur      = null;
+const tempoSegments     = [];
+
+// ── Pending renderer (applied at word boundary) ───────────────
+let pendingRendererType = null;
+
+// ── Poll + display state ──────────────────────────────────────
+let lastSentAt   = 0;
+let lastPrompt   = '';
+let currentDecay = DECAY_DEF;
+
+// ── Pattern state ─────────────────────────────────────────────
+let currentPatternName = 'letter-gates';
+let currentSecretWord  = '';
+let lastPatternAt      = 0;
+
+// ── Vote lockout ──────────────────────────────────────────────
+let hasVotedThisPrompt = false;
 
 // ── DOM refs ─────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
-const pitchSlider      = $('pitch-slider');
-const pitchVal         = $('pitch-val');
+const pitchBtnsEl      = $('pitch-btns');
 const decaySlider      = $('decay-slider');
-const decayVal         = $('decay-val');
-const rendererSel      = $('renderer-select');
+const patternLabel     = $('pattern-label');
 const voteInput        = $('vote-input');
 const submitBtn        = $('submit-btn');
 const playLabel        = $('play-label');
@@ -398,27 +474,54 @@ const wordDisplayPanel = $('word-display-panel');
 const wordDisplayEl    = $('word-display');
 const queuedLabel      = $('queued-label');
 
-// ── Slider wiring ─────────────────────────────────────────────
-pitchSlider.addEventListener('input', () => {
-  currentPitch = logScale(+pitchSlider.value, 100, 2000);
-  pitchVal.textContent = Math.round(currentPitch) + ' Hz';
-});
+// ── Pitch buttons ─────────────────────────────────────────────
+function renderPitchBtns() {
+  pitchBtnsEl.innerHTML = pitchOptions.map((freq, i) => {
+    const active = i === activePitchIdx ? 'btn-pitch-active' : '';
+    return `<button class="btn-pitch ${active}" data-idx="${i}">${i + 1}</button>`;
+  }).join('');
+  pitchBtnsEl.querySelectorAll('.btn-pitch').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activePitchIdx = +btn.dataset.idx;
+      currentPitch   = pitchOptions[activePitchIdx];
+      renderPitchBtns();
+    });
+  });
+}
+renderPitchBtns();
+
+// ── Decay slider + auto-return ────────────────────────────────
+let _decayAnim = null;
+
+function startDecayReturn() {
+  if (_decayAnim) cancelAnimationFrame(_decayAnim);
+  const sv0      = +decaySlider.value;
+  const decay0   = currentDecay;
+  const t0       = performance.now();
+  const DURATION = 5000;
+
+  function step(now) {
+    const p       = Math.min((now - t0) / DURATION, 1);
+    currentDecay  = decay0  + (DECAY_DEF    - decay0)  * p;
+    decaySlider.value = (sv0 + (DECAY_DEF_SV - sv0) * p).toFixed(4);
+    _decayAnim = p < 1 ? requestAnimationFrame(step) : null;
+  }
+  _decayAnim = requestAnimationFrame(step);
+}
+
+function cancelDecayReturn() {
+  if (_decayAnim) { cancelAnimationFrame(_decayAnim); _decayAnim = null; }
+}
+
 decaySlider.addEventListener('input', () => {
-  currentDecay = logScale(+decaySlider.value, 0.040, 0.500);
-  decayVal.textContent = Math.round(currentDecay * 1000) + ' ms';
+  cancelDecayReturn();
+  currentDecay = logScale(+decaySlider.value, DECAY_LO, DECAY_HI);
 });
-rendererSel.addEventListener('change', () => {
-  if (audioCtx) renderer = createRenderer(rendererSel.value, audioCtx);
-});
+decaySlider.addEventListener('mouseleave', startDecayReturn);
+decaySlider.addEventListener('mouseenter', cancelDecayReturn);
 
-// Randomise pitch on every page load so players start distinct
-pitchSlider.value = Math.random().toFixed(3);
-// Decay stays at midpoint default
-decaySlider.value = '0.637';
-
-// Initialise display values
-pitchSlider.dispatchEvent(new Event('input'));
-decaySlider.dispatchEvent(new Event('input'));
+// Initialise to default
+decaySlider.value = DECAY_DEF_SV.toFixed(4);
 
 // ── Welcome overlay / audio unlock ───────────────────────────
 const welcomeOverlay = $('welcome-overlay');
@@ -437,7 +540,21 @@ welcomeOverlay.addEventListener('click', () => {
 function ensureAudio() {
   if (audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  renderer = createRenderer(rendererSel.value, audioCtx);
+  renderer = createRenderer(currentRendererType, audioCtx);
+}
+
+// ── Tempo helpers ─────────────────────────────────────────────
+// Convert an AudioContext time to a global note index, respecting
+// all tempo changes recorded in tempoSegments.
+function timeToNoteIndex(t) {
+  if (!tempoSegments.length) return 0;
+  for (let i = tempoSegments.length - 1; i >= 0; i--) {
+    const seg = tempoSegments[i];
+    if (t >= seg.startTime) {
+      return seg.startNote + Math.floor((t - seg.startTime) / seg.noteDur);
+    }
+  }
+  return 0;
 }
 
 // ── Scheduler ─────────────────────────────────────────────────
@@ -445,13 +562,14 @@ function startScheduler(startAtUTC) {
   ensureAudio();
   if (audioCtx.state === 'suspended') audioCtx.resume();
 
-  // Map the UTC piece-start time into AudioContext time
   const nowUTC   = Date.now();
   audioStartTime = audioCtx.currentTime + (startAtUTC - nowUTC) / 1000;
+  scheduledUpTo  = Math.max(audioCtx.currentTime, audioStartTime);
+  isPlaying      = true;
 
-  // Begin scheduling from now (or wait if start is in the future)
-  scheduledUpTo = Math.max(audioCtx.currentTime, audioStartTime);
-  isPlaying     = true;
+  // Anchor the first tempo segment at piece start
+  tempoSegments.length = 0;
+  tempoSegments.push({ startNote: 0, startTime: audioStartTime, noteDur: currentNoteDur });
 
   syncDot.classList.add('active');
   const secsTill = (startAtUTC - nowUTC) / 1000;
@@ -471,26 +589,37 @@ function tick() {
 
   while (scheduledUpTo < horizon) {
     if (scheduledUpTo >= audioStartTime) {
+      const gIdx = timeToNoteIndex(scheduledUpTo);
 
-      // Global note index since piece start
-      const gIdx = Math.round((scheduledUpTo - audioStartTime) / NOTE_DUR);
-
-      // Swap in pending word at the next note boundary
+      // Apply pending word, tempo, and renderer at the note boundary
       if (pendingWord !== null) {
-        currentWord  = pendingWord.toUpperCase();
-        pendingWord  = null;
+        currentWord   = pendingWord.toUpperCase();
+        pendingWord   = null;
         wordStartNote = gIdx;
+
+        if (pendingNoteDur !== null) {
+          currentNoteDur = pendingNoteDur;
+          pendingNoteDur = null;
+          // Record new tempo segment so timeToNoteIndex stays coherent
+          tempoSegments.push({ startNote: gIdx, startTime: scheduledUpTo, noteDur: currentNoteDur });
+        }
+
+        if (pendingRendererType !== null) {
+          currentRendererType = pendingRendererType;
+          renderer = createRenderer(pendingRendererType, audioCtx);
+          pendingRendererType = null;
+        }
+
         updateWordStatus();
       }
 
       if (currentWord.length > 0) {
         const charIdx = (gIdx - wordStartNote) % currentWord.length;
         const ch      = currentWord[charIdx];
-        const isOn    = CHAR_MAP[ch] ?? false;
+        const isOn    = computeIsOn(ch, currentPatternName, lastPrompt, currentSecretWord);
 
-        renderer.playNote(isOn, scheduledUpTo, NOTE_DUR, currentPitch, currentDecay, ch);
+        renderer.playNote(isOn, scheduledUpTo, currentNoteDur, currentPitch, currentDecay, ch);
 
-        // Schedule the note-flash indicator to fire at the right moment
         if (isOn) {
           const delay = Math.max(0, (scheduledUpTo - now) * 1000);
           setTimeout(flashNote, delay);
@@ -498,10 +627,9 @@ function tick() {
       }
     }
 
-    scheduledUpTo += NOTE_DUR;
+    scheduledUpTo += currentNoteDur;
   }
 
-  // Live countdown / playing label
   if (audioStartTime !== null && audioCtx.currentTime < audioStartTime) {
     const rem = audioStartTime - audioCtx.currentTime;
     syncLabel.textContent = `starts in ${rem.toFixed(1)} s`;
@@ -511,7 +639,6 @@ function tick() {
     playLabel.textContent = currentWord ? `playing: ${currentWord}` : 'playing — no word yet';
   }
 
-  // Update character highlight based on current playback position
   updateHighlight();
 
   tickTimer = setTimeout(tick, TICK_MS);
@@ -519,7 +646,6 @@ function tick() {
 
 function flashNote() {
   noteRing.classList.remove('flash');
-  // Force reflow so the animation re-triggers
   void noteRing.offsetWidth;
   noteRing.classList.add('flash');
   setTimeout(() => noteRing.classList.remove('flash'), 400);
@@ -535,12 +661,18 @@ function stopScheduler() {
 
 function resetScheduler() {
   stopScheduler();
-  currentWord    = '';
-  pendingWord    = null;
-  audioStartTime = null;
-  scheduledUpTo  = 0;
-  wordStartNote  = 0;
-  // Clear prompt state
+  unlockVoting();
+
+  currentWord         = '';
+  pendingWord         = null;
+  audioStartTime      = null;
+  scheduledUpTo       = 0;
+  wordStartNote       = 0;
+  currentNoteDur      = 0.400;
+  pendingNoteDur      = null;
+  pendingRendererType = null;
+  tempoSegments.length = 0;
+
   lastPrompt             = '';
   lastSentAt             = 0;
   promptPanel.style.display = 'none';
@@ -548,15 +680,15 @@ function resetScheduler() {
   voteInput.value        = '';
   promptOverlay.classList.remove('show');
   clearTimeout(_overlayTimer);
-  // Reset status labels
+
   syncDot.classList.remove('active');
   syncLabel.textContent = 'waiting for admin';
   playLabel.textContent = 'audio idle';
   queuedLabel.innerHTML = '';
-  updateWordStatus(); // clears word display back to —
+  updateWordStatus();
 }
 
-// ── Word display rendering ────────────────────────────────────
+// ── Word display ──────────────────────────────────────────────
 function renderWordDisplay(word) {
   if (!word) {
     wordDisplayEl.innerHTML = '<span class="no-word">—</span>';
@@ -569,7 +701,7 @@ function renderWordDisplay(word) {
     let cls;
     if (ch === ' ') {
       cls = 'is-space';
-    } else if (CHAR_MAP[key] === true) {
+    } else if (computeIsOn(key, currentPatternName, lastPrompt, currentSecretWord)) {
       cls = 'is-on';
     } else {
       cls = 'is-off';
@@ -586,7 +718,7 @@ function updateHighlight() {
   if (!isPlaying || audioStartTime === null || !currentWord) return;
   const now = audioCtx.currentTime;
   if (now < audioStartTime) return;
-  const gIdx    = Math.floor((now - audioStartTime) / NOTE_DUR);
+  const gIdx    = timeToNoteIndex(now);
   const charIdx = (gIdx - wordStartNote) % currentWord.length;
   const chars   = wordDisplayEl.querySelectorAll('.wchar');
   chars.forEach((el, i) => el.classList.toggle('active', i === charIdx));
@@ -594,11 +726,24 @@ function updateHighlight() {
 
 function updateWordStatus() {
   renderWordDisplay(currentWord);
-  if (pendingWord) {
-    queuedLabel.innerHTML = `Up next: <span class="hl">${esc(pendingWord.toUpperCase())}</span>`;
-  } else {
-    queuedLabel.innerHTML = '';
-  }
+  queuedLabel.innerHTML = pendingWord
+    ? `Up next: <span class="hl">${esc(pendingWord.toUpperCase())}</span>`
+    : '';
+}
+
+// ── Vote lockout ──────────────────────────────────────────────
+function lockVoting() {
+  hasVotedThisPrompt    = true;
+  voteInput.disabled    = true;
+  submitBtn.disabled    = true;
+  voteInput.placeholder = 'Waiting for next prompt…';
+}
+
+function unlockVoting() {
+  hasVotedThisPrompt    = false;
+  voteInput.disabled    = false;
+  submitBtn.disabled    = false;
+  voteInput.placeholder = 'type here…';
 }
 
 // ── Vote submission ───────────────────────────────────────────
@@ -606,11 +751,11 @@ async function submitVote(raw) {
   const word = raw.trim();
   if (!word) return;
 
-  // Queue locally — scheduler picks it up at the next note boundary
+  lockVoting();
+
   pendingWord = word;
   updateWordStatus();
 
-  // Post to server (player's slot is overwritten each time they submit)
   try {
     await fetch(`${SERVER}/post_message/${VOTES_KEY}/${playerId}`, {
       method:  'POST',
@@ -641,22 +786,23 @@ promptOverlay.addEventListener('click', () => {
 
 let _overlayTimer = null;
 function showNewPrompt(prompt) {
+  unlockVoting();
   lastPrompt             = prompt;
   olWord.textContent     = prompt;
   promptText.textContent = prompt;
   promptPanel.style.display = 'block';
+  if (currentWord) renderWordDisplay(currentWord);
   promptOverlay.classList.add('show');
-  voteInput.value = '';   // clear any partial typing
-  // Auto-dismiss after 3 s
+  voteInput.value = '';
   clearTimeout(_overlayTimer);
   _overlayTimer = setTimeout(() => {
     promptOverlay.classList.remove('show');
     voteInput.focus();
-  }, 3000);
+  }, 15000);
 }
 
 // ── Server polling ────────────────────────────────────────────
-const STALE_MS = 7_200_000; // ignore state older than 2 hours
+const STALE_MS = 7_200_000;
 
 async function pollState() {
   try {
@@ -664,24 +810,63 @@ async function pollState() {
     const state = await res.json();
 
     if (!state || !state.sentAt) return;
-    if (state.sentAt < Date.now() - STALE_MS) return;  // stale from old session
-    if (state.sentAt <= lastSentAt) return;             // already processed
+    if (state.sentAt < Date.now() - STALE_MS) return;
+    if (state.sentAt <= lastSentAt) return;
     lastSentAt = state.sentAt;
 
     switch (state.action) {
-      case 'start':  startScheduler(state.startAt); break;
-      case 'stop':   stopScheduler();               break;
-      case 'reset':  resetScheduler();              break;
+      case 'start':
+        // Apply initial BPM immediately (before startScheduler anchors tempoSegments)
+        if (state.bpm) currentNoteDur = 60 / state.bpm;
+        startScheduler(state.startAt);
+        break;
+      case 'stop':
+        stopScheduler();
+        break;
+      case 'reset':
+        resetScheduler();
+        break;
+      case 'prompt':
+        // Store BPM as pending; applied when player next submits a word
+        if (state.bpm) pendingNoteDur = 60 / state.bpm;
+        break;
     }
 
     if (state.prompt && state.prompt !== lastPrompt) {
       showNewPrompt(state.prompt);
     }
-  } catch (_) { /* network hiccup — ignore */ }
+  } catch (_) {}
 }
 
 setInterval(pollState, POLL_MS);
 pollState();
+
+// ── Pattern polling ───────────────────────────────────────────
+const PATTERN_NAMES = {
+  'letter-gates':    'Letter Gates',
+  'vowel-gates':     'Vowel Gates',
+  'consonant-gates': 'Consonant Gates',
+  'shared-gates':    'Shared Gates',
+  'secret-gates':    'Secret Gates',
+};
+
+async function pollPattern() {
+  try {
+    const res  = await fetch(`${SERVER}/get_message/${PATTERN_KEY}`);
+    const data = await res.json();
+    if (!data || !data.sentAt) return;
+    if (data.sentAt <= lastPatternAt) return;
+    lastPatternAt      = data.sentAt;
+    currentPatternName = data.patternName || 'letter-gates';
+    currentSecretWord  = data.secretWord  || '';
+    if (data.timbreType) pendingRendererType = data.timbreType;
+    patternLabel.textContent = PATTERN_NAMES[currentPatternName] || currentPatternName;
+    if (currentWord) renderWordDisplay(currentWord);
+  } catch (_) {}
+}
+
+setInterval(pollPattern, 1000);
+pollPattern();
 
 // ── Utility ───────────────────────────────────────────────────
 function esc(s) {

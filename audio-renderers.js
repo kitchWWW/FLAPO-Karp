@@ -227,6 +227,39 @@ class AudioFileRenderer extends AudioRenderer {
 
 
 // ─────────────────────────────────────────────────────────────
+// SONIFICATION PATTERNS
+//
+// computeIsOn(ch, patternName, prompt, secretWord) → boolean
+//   Returns whether a character should produce a note given the
+//   active pattern and its context parameters.
+// ─────────────────────────────────────────────────────────────
+const VOWELS = new Set(['A','E','I','O','U']);
+
+function computeIsOn(ch, patternName, prompt, secretWord) {
+  const c = ch.toUpperCase();
+  switch (patternName) {
+    case 'vowel-gates':
+      if (/[A-Z]/.test(c)) return VOWELS.has(c);
+      return CHAR_MAP[c] ?? false;
+    case 'consonant-gates':
+      if (/[A-Z]/.test(c)) return !VOWELS.has(c);
+      return CHAR_MAP[c] ?? false;
+    case 'shared-gates': {
+      if (c === ' ') return false;
+      return (prompt || '').toUpperCase().includes(c);
+    }
+    case 'secret-gates': {
+      if (c === ' ') return false;
+      return (secretWord || '').toUpperCase().includes(c);
+    }
+    case 'letter-gates':
+    default:
+      return CHAR_MAP[c] ?? false;
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────
 // FACTORY — call this to get any renderer by name
 // ─────────────────────────────────────────────────────────────
 function createRenderer(type, audioCtx) {

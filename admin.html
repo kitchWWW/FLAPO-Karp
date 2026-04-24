@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin — Karp 2025</title>
+  <title>Admin — SynoRhythm</title>
   <link rel="stylesheet" href="style.css">
   <style>
     /* ── Admin-specific ───────────────────────────────────── */
@@ -55,13 +55,93 @@
       margin-top: 0.6rem;
     }
     .total-count span { color: var(--accent); }
+
+    /* ── Sonification pattern buttons ────────────────────────── */
+    .pattern-btns {
+      display:   flex;
+      flex-wrap: wrap;
+      gap:       0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .btn-pattern-active {
+      background:   linear-gradient(to bottom, #66dd88 0%, #009933 55%, #007722 56%, #22cc55 100%) !important;
+      border-color: #005522 !important;
+      box-shadow:   3px 3px 0 #003311, inset 0 1px 0 rgba(255,255,255,0.35) !important;
+      color:        white !important;
+    }
+    .btn-pattern-active:hover:not(:disabled) {
+      background: linear-gradient(to bottom, #88ee99 0%, #00aa44 55%, #008833 56%, #33dd66 100%) !important;
+      box-shadow: 4px 4px 0 #003311, inset 0 1px 0 rgba(255,255,255,0.35) !important;
+    }
+
+    .secret-word-row {
+      display:     flex;
+      align-items: center;
+      gap:         0.5rem;
+      margin-top:  0.1rem;
+    }
+    .secret-word-row label {
+      font-size:      0.72rem;
+      font-weight:    bold;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color:          var(--muted);
+      white-space:    nowrap;
+    }
+
+    /* ── Tempo panel ─────────────────────────────────────────── */
+    .tempo-sub-label {
+      font-size:      0.68rem;
+      font-weight:    bold;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color:          var(--muted);
+      margin-bottom:  0.35rem;
+      display:        block;
+    }
+
+    .tempo-next-row {
+      display:     flex;
+      align-items: center;
+      gap:         0.65rem;
+      margin-top:  0.55rem;
+    }
+
+    .bpm-input {
+      width:       5.5rem;
+      padding:     0.45rem 0.6rem;
+      border:      2px solid #cc55aa;
+      border-top-color:  #aa3388;
+      border-left-color: #aa3388;
+      border-radius: 5px;
+      background:  #fff8fe;
+      font-family: var(--font);
+      font-size:   1rem;
+      color:       var(--purple);
+      font-weight: bold;
+      outline:     none;
+      box-shadow:  inset 0 2px 5px rgba(200,0,120,0.1);
+    }
+    .bpm-input:focus {
+      border-color: var(--pink);
+      box-shadow:   inset 0 2px 5px rgba(200,0,120,0.1),
+                    0 0 0 3px rgba(224,8,154,0.22);
+    }
+
+    #bpm-ratio-hint {
+      font-size:   0.65rem;
+      color:       var(--muted);
+      font-style:  italic;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
 
 <!-- ── Header ──────────────────────────────────────────────── -->
 <div class="page-header">
-  <span class="page-title">Karp 2025 — Admin</span>
+  <span class="page-title">SynoRhythm — Admin</span>
   <span class="status-line">
     <span class="dot" id="conn-dot"></span>
     <span id="conn-label">connecting…</span>
@@ -82,6 +162,51 @@
     <div class="status-line" style="margin-top: 0.65rem;">
       <span class="dot" id="play-dot"></span>
       <span id="play-label">idle</span>
+    </div>
+  </div>
+
+  <!-- ── Sonification Pattern ──────────────────────────────── -->
+  <div class="panel">
+    <span class="panel-label">Sonification Pattern</span>
+    <div class="pattern-btns">
+      <button class="btn-pattern btn-pattern-active" data-pattern="letter-gates">Letter Gates</button>
+      <button class="btn-pattern" data-pattern="vowel-gates">Vowel Gates</button>
+      <button class="btn-pattern" data-pattern="consonant-gates">Consonant Gates</button>
+      <button class="btn-pattern" data-pattern="shared-gates">Shared Gates</button>
+      <button class="btn-pattern" data-pattern="secret-gates">Secret Gates</button>
+    </div>
+    <div class="secret-word-row">
+      <label>Secret Word:</label>
+      <input type="text" id="secret-word-input" class="grow"
+             placeholder="Enter secret word…" autocomplete="off">
+      <button id="set-secret-btn">Set</button>
+    </div>
+  </div>
+
+  <!-- ── Timbre ────────────────────────────────────────────── -->
+  <div class="panel">
+    <span class="panel-label">Timbre</span>
+    <div class="pattern-btns" style="margin-bottom:0;">
+      <button class="btn-pattern btn-timbre btn-pattern-active" data-timbre="tone">Sine Tone</button>
+      <button class="btn-pattern btn-timbre" data-timbre="noise">White Noise</button>
+    </div>
+  </div>
+
+  <!-- ── Tempo ─────────────────────────────────────────────── -->
+  <div class="panel">
+    <span class="panel-label">Tempo</span>
+
+    <span class="tempo-sub-label">Session Tempo List (BPM, comma-separated — sent at start)</span>
+    <div class="row">
+      <input type="text" class="grow" id="tempo-list-input"
+             value="150" placeholder="e.g. 150, 144, 120, 90" autocomplete="off">
+    </div>
+
+    <div class="tempo-next-row">
+      <span class="tempo-sub-label" style="margin:0;white-space:nowrap;">Next Prompt BPM</span>
+      <input type="number" id="bpm-input" class="bpm-input" value="150"
+             min="20" max="400" step="1">
+      <span id="bpm-ratio-hint"></span>
     </div>
   </div>
 
@@ -118,11 +243,12 @@
 'use strict';
 
 // ── Config ────────────────────────────────────────────────────
-const SERVER    = 'https://relay.brianellissound.com';
-const NS        = 'karp2025';
-const STATE_KEY = `${NS}-state`;
-const VOTES_KEY = `${NS}-votes`;
-const POLL_MS   = 1000;
+const SERVER      = 'https://relay.brianellissound.com';
+const NS          = 'karp2025';
+const STATE_KEY   = `${NS}-state`;
+const VOTES_KEY   = `${NS}-votes`;
+const PATTERN_KEY = `${NS}-pattern`;
+const POLL_MS     = 1000;
 
 // ── DOM refs ─────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -140,6 +266,90 @@ const connDot         = $('conn-dot');
 const connLabel       = $('conn-label');
 const playDot         = $('play-dot');
 const playLabel       = $('play-label');
+const secretWordInput = $('secret-word-input');
+const setSecretBtn    = $('set-secret-btn');
+const tempoListInput  = $('tempo-list-input');
+const bpmInput        = $('bpm-input');
+const bpmRatioHint    = $('bpm-ratio-hint');
+const patternBtns     = document.querySelectorAll('.btn-pattern:not(.btn-timbre)');
+const timbreBtns      = document.querySelectorAll('.btn-timbre');
+
+// ── Pattern + timbre state ────────────────────────────────────
+let activePattern = 'letter-gates';
+let activeTimbre  = 'tone';
+
+// ── Tempo / BPM state ─────────────────────────────────────────
+let lastBPM          = 150;
+let lastBPMDirection = null; // 'increased' | 'decreased'
+let prevPromptText   = '';
+
+// ── Tempo helpers ─────────────────────────────────────────────
+function gcd(a, b) {
+  a = Math.max(1, Math.abs(Math.round(a)));
+  b = Math.max(1, Math.abs(Math.round(b)));
+  while (b) { [a, b] = [b, a % b]; }
+  return a;
+}
+
+function computeAutoTempo(prevLen, currLen, currentBPM, lastDirection) {
+  if (!prevLen || !currLen) return currentBPM;
+  const g  = gcd(prevLen, currLen);
+  const hi = Math.max(prevLen / g, currLen / g);
+  const lo = Math.min(prevLen / g, currLen / g);
+  const ratio = lastDirection === 'increased' ? lo / hi : hi / lo;
+  return Math.max(20, Math.min(400, Math.round(currentBPM * ratio * 10) / 10));
+}
+
+// Auto-compute BPM as admin types a new prompt
+promptInput.addEventListener('input', () => {
+  if (!prevPromptText) return;
+  const curr = promptInput.value.trim();
+  if (!curr) return;
+  const newBPM = computeAutoTempo(prevPromptText.length, curr.length, lastBPM, lastBPMDirection);
+  bpmInput.value = newBPM;
+  const g = gcd(prevPromptText.length, curr.length);
+  const dir = lastBPMDirection === 'increased' ? '↓' : '↑';
+  bpmRatioHint.textContent =
+    `ratio ${prevPromptText.length/g}:${curr.length/g} ${dir}`;
+});
+
+// ── Pattern + timbre posting ──────────────────────────────────
+async function postPattern(patternName) {
+  activePattern = patternName;
+  patternBtns.forEach(btn => {
+    btn.classList.toggle('btn-pattern-active', btn.dataset.pattern === patternName);
+  });
+  return fetch(`${SERVER}/post_message/${PATTERN_KEY}`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({
+      patternName,
+      secretWord: secretWordInput.value.trim(),
+      timbreType: activeTimbre,
+      sentAt:     Date.now()
+    })
+  });
+}
+
+patternBtns.forEach(btn => {
+  btn.addEventListener('click', () => postPattern(btn.dataset.pattern));
+});
+
+timbreBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeTimbre = btn.dataset.timbre;
+    timbreBtns.forEach(b => {
+      b.classList.toggle('btn-pattern-active', b.dataset.timbre === activeTimbre);
+    });
+    postPattern(activePattern);
+  });
+});
+
+setSecretBtn.addEventListener('click', async () => {
+  await postPattern(activePattern);
+  setSecretBtn.textContent = 'Set ✓';
+  setTimeout(() => { setSecretBtn.textContent = 'Set'; }, 1500);
+});
 
 // ── Helpers ───────────────────────────────────────────────────
 function esc(s) {
@@ -147,6 +357,13 @@ function esc(s) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+function parseTempoList() {
+  return tempoListInput.value
+    .split(',')
+    .map(s => parseFloat(s.trim()))
+    .filter(n => !isNaN(n) && n > 0);
 }
 
 async function postState(state) {
@@ -163,21 +380,29 @@ async function doClearVotes() {
 
 // ── Transport ─────────────────────────────────────────────────
 startBtn.addEventListener('click', async () => {
-  const startAt = Date.now() + 5000;
-  const prompt  = promptInput.value.trim();
-  await postState({ action: 'start', startAt, prompt: prompt || undefined });
+  const startAt   = Date.now() + 5000;
+  const prompt    = promptInput.value.trim();
+  const bpm       = parseFloat(bpmInput.value) || lastBPM;
+  const tempoList = parseTempoList();
+  if (!tempoList.length) tempoList.push(bpm);
+
+  await postState({ action: 'start', startAt, prompt: prompt || undefined, bpm, tempoList });
+  await postPattern(activePattern);
+
+  lastBPM = bpm;
+
   playDot.classList.add('active');
   playLabel.textContent = 'syncing — all clients start in 5 s';
-  startBtn.disabled = true;
-  startBtn.textContent = '▶ Started';
+  startBtn.disabled     = true;
+  startBtn.textContent  = '▶ Started';
 });
 
 stopBtn.addEventListener('click', async () => {
   await postState({ action: 'stop' });
   playDot.classList.remove('active');
   playLabel.textContent = 'stopped';
-  startBtn.disabled = false;
-  startBtn.textContent = '▶ Start (sync in 5 s)';
+  startBtn.disabled     = false;
+  startBtn.textContent  = '▶ Start (sync in 5 s)';
 });
 
 resetBtn.addEventListener('click', async () => {
@@ -187,17 +412,30 @@ resetBtn.addEventListener('click', async () => {
   await postState({ action: 'reset', prompt: '' });
   playDot.classList.remove('active');
   playLabel.textContent = 'idle';
-  startBtn.disabled = false;
-  startBtn.textContent = '▶ Start (sync in 5 s)';
-  promptInput.value = '';
+  startBtn.disabled     = false;
+  startBtn.textContent  = '▶ Start (sync in 5 s)';
+  promptInput.value     = '';
+  prevPromptText        = '';
+  bpmRatioHint.textContent = '';
   renderVotes({});
 });
 
 sendPromptBtn.addEventListener('click', async () => {
   const prompt = promptInput.value.trim();
   if (!prompt) { promptInput.focus(); return; }
+  const bpm = parseFloat(bpmInput.value) || lastBPM;
+
   await doClearVotes();
-  await postState({ action: 'prompt', prompt });
+  await postState({ action: 'prompt', prompt, bpm });
+  await postPattern(activePattern);
+
+  // Update direction tracking for next auto-compute
+  if (bpm > lastBPM)      lastBPMDirection = 'increased';
+  else if (bpm < lastBPM) lastBPMDirection = 'decreased';
+  prevPromptText = prompt;
+  lastBPM        = bpm;
+  bpmRatioHint.textContent = '';
+
   sendPromptBtn.textContent = 'Sent ✓';
   setTimeout(() => { sendPromptBtn.textContent = 'Send Prompt'; }, 1800);
 });
